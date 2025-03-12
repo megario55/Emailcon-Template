@@ -113,6 +113,8 @@ const handleTemplateSelect = (template) => {
 
   const handlebackcampaign = () => {
     navigate("/home");
+    sessionStorage.removeItem("firstVisit");
+    sessionStorage.removeItem("toggled");
   };
 
   // Add new text
@@ -612,6 +614,8 @@ const handleTemplateSelect = (template) => {
       localStorage.setItem("camhistory", JSON.stringify(campaignResponse.data));
       toast.success("Email scheduled successfully!");
       navigate("/home");
+      sessionStorage.removeItem("firstVisit");
+      sessionStorage.removeItem("toggled");
     } catch (error) {
       console.error("Error scheduling email:", error);
       toast.error("Failed to schedule email.");
@@ -638,6 +642,8 @@ const handleTemplateSelect = (template) => {
     }
     setIsLoading(true);
     navigate("/home");
+    sessionStorage.removeItem("firstVisit");
+    sessionStorage.removeItem("toggled");
 
     try {
       let recipients = emailData.recipient
@@ -781,23 +787,47 @@ const handleTemplateSelect = (template) => {
   const handleDragOver = (e) => {
     e.preventDefault(); // Allow drop by preventing default
   };
-   useEffect(() => {
-     const handleResize = () => {
-       const mobile = window.matchMedia("(max-width: 600px)").matches;
-       // When switching devices, set state to default for that view.
-       setShowMobileContent(mobile ? true : false);
-     };
+  useEffect(() => {
+    // Check if it's the first visit and if the user has toggled
+    const firstVisit = sessionStorage.getItem("firstVisit");
+    const toggled = sessionStorage.getItem("toggled");
 
-     window.addEventListener("resize", handleResize);
-     return () => window.removeEventListener("resize", handleResize);
-   }, []);
+    if (!firstVisit) {
+      setShowMobileContent(true);
+      sessionStorage.setItem("firstVisit", "true"); // Mark first visit
+    } else if (toggled) {
+      setShowMobileContent(false); // If toggled before, stay on editor page
+    } else {
+      const mobile = window.matchMedia("(max-width: 600px)").matches;
+      setShowMobileContent(mobile);
+    }
 
-   // Toggle function that only works on mobile devices
-   const handleToggle = () => {
-     if (window.matchMedia("(max-width: 768px)").matches) {
-       setShowMobileContent((prev) => !prev);
-     }
-   };
+    const handleResize = () => {
+      if (!sessionStorage.getItem("toggled")) {
+        const mobile = window.matchMedia("(max-width: 600px)").matches;
+        setShowMobileContent(mobile);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Toggle function that only works on mobile devices
+  const handleToggle = () => {
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      setShowMobileContent(false); // Hide mobile content
+      sessionStorage.setItem("toggled", "true"); // Prevent showing mobile view again
+    }
+  };
+
+
+  //  // Toggle function that only works on mobile devices
+  //  const handleToggle = () => {
+  //    if (window.matchMedia("(max-width: 768px)").matches) {
+  //      setShowMobileContent((prev) => !prev);
+  //    }
+  //  };
 
 
   const handleLinkClick = (e, index) => {

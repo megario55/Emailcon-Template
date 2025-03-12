@@ -141,6 +141,8 @@ const sendscheduleExcel = async () => {
         console.log("Initial Campaign History Saved:", campaignResponse.data);
            toast.success("Email scheduled successfully!");
         navigate("/home");
+        sessionStorage.removeItem("firstVisit");
+        sessionStorage.removeItem("toggled");
       }
       catch (error) {
         console.error("Error scheduling email:", error);
@@ -188,6 +190,8 @@ const handleSend = async () => {
     }
   setIsLoading(true); // Show loader
     navigate("/home");
+    sessionStorage.removeItem("firstVisit");
+    sessionStorage.removeItem("toggled");
 
     let sentEmails = [];
     let failedEmails = [];

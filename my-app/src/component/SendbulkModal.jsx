@@ -99,6 +99,8 @@ const sendscheduleBulk = async () => {
         console.log("Initial Campaign History Saved:", campaignResponse.data);
         toast.success("Email scheduled successfully!");
         navigate("/home");
+        sessionStorage.removeItem("firstVisit");
+        sessionStorage.removeItem("toggled");
       }
       catch (error) {
         console.error("Error scheduling email:", error);
@@ -121,6 +123,8 @@ const handleSend = async () => {
   }
        setIsProcessing(true);
            navigate("/home");
+           sessionStorage.removeItem("firstVisit");
+           sessionStorage.removeItem("toggled");
 
 
 
