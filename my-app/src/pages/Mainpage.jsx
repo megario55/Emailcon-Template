@@ -105,6 +105,7 @@ useEffect(() => {
 }, []);
 
 const handleTemplateSelect = (template) => {
+  setIsNavOpen(false);
   setIsOpentemplate(false); // Close the dropdown
   setSelectedTemplate(template);
   setBgColor(template.bgColor || "#ffffff"); // Update background color
