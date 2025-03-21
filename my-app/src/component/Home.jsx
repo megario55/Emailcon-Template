@@ -5,7 +5,7 @@ import {
   FaUserPlus,
   FaEye,
   FaUser,
-  FaUsers,
+  
 } from "react-icons/fa";
 import "./Home.css";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,6 @@ import apiConfig from "../apiconfig/apiConfig.js";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SendbulkModal from "./SendbulkModal.jsx";
-import GroupsingleModal from "./GroupsingleModal";
 import GroupfileModal from "./GroupfileModal";
 import GroupModalnew from "./GroupModalnew.jsx";
 import ListPage from "./ListPage.jsx";
@@ -30,7 +29,6 @@ const Home = () => {
   const [view, setView] = useState("main");
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [campaignName, setCampaignName] = useState("");
-  const [showsingleGroupModal, setShowsingleGroupModal] = useState(false);
   const [showfileGroupModal, setShowfileGroupModal] = useState(false);
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [showListPageModal, setShowListPageModal] = useState(false);
@@ -46,6 +44,7 @@ const Home = () => {
       navigate("/signup");
       toast.warning("Signup first to access Homepage");
     } else {
+      
       const modalShown = localStorage.getItem("modalShown");
       if (!modalShown) {
         setShowPopup(true); // Show modal on first navigation
@@ -54,10 +53,13 @@ const Home = () => {
     }
   }, [user, navigate]);
 
+
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("modalShown"); // Reset modalShown for next login
+    localStorage.setItem("hasvisit",true);
     navigate("/");
   };
 
@@ -79,9 +81,7 @@ const Home = () => {
     setView("create-contact");
   };
 
-  const handleAddContent = () => {
-    setView("add-contact");
-  };
+
 
   const handleCreateCampaign = () => {
     setShowCampaignModal(true);
@@ -91,20 +91,21 @@ const Home = () => {
     setShowListPageModal(true);
   };
 
-  const handleaddSinglecontacts = () => {
-    setShowsingleGroupModal(true);
-  };
 
   const handleaddfilecontacts = () => {
     setShowfileGroupModal(true);
   };
 
   const handleCreateButton = () => {
-    setIsLoading(true);
     if (!user || !user.id) {
       toast.error("Please ensure the user is valid");
       return; // Stop further execution if user is invalid
     }
+    if (!campaignName) {
+      toast.error("Please enter a campaign name");
+      return; // Stop further execution
+    }
+    setIsLoading(true);
 
     if (campaignName && user && user.id) {
       axios
@@ -118,15 +119,12 @@ const Home = () => {
             "campaign",
             JSON.stringify(response.data.campaign)
           );
-          toast.success("Campaign created");
-          setTimeout(() => {
+          console.log("Campaign created");
+            setIsLoading(false);
+            navigate("/editor");            
             setShowCampaignModal(false);
             setCampaignName("");
-          }, 4000);
-          setTimeout(() => {
-            navigate("/editor");
-            setIsLoading(false);
-          }, 3000);
+        
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -258,36 +256,18 @@ const Home = () => {
               <div className="card-grid">
                 <div
                   className="cards"
-                  onClick={() => setShowNewGroupModal(true)}
-                >
+                  onClick={() => setShowNewGroupModal(true)}>
                   <FaUserPlus className="icons contact-create-icon" />
                   <span className="card-texts">New Group</span>
                 </div>
-                <div className="cards" onClick={handleAddContent}>
+                <div className="cards" onClick={handleaddfilecontacts}>
                   <FaUser className="icons contact-view-icon" />
                   <span className="card-texts">Existing Group</span>
                 </div>
               </div>
-            )}
-            {/* setShowGroupModal(true) */}
-            {view === "add-contact" && (
-              <div className="card-grid">
-                <div className="cards" onClick={handleaddSinglecontacts}>
-                  <FaUser className="icons contact-create-icon" />
-                  <span className="card-texts">Add Single</span>
-                </div>
-                <div className="cards" onClick={handleaddfilecontacts}>
-                  <FaUsers className="icons contact-view-icon" />
-                  <span className="card-texts">Add Bulk</span>
-                </div>
-              </div>
-            )}
+            )}           
           </div>
 
-          {/* Show group existing modal    */}
-          {showsingleGroupModal && (
-            <GroupsingleModal onClose={() => setShowsingleGroupModal(false)} />
-          )}
           {/* Show group existing modal    */}
           {showfileGroupModal && (
             <GroupfileModal onClose={() => setShowfileGroupModal(false)} />
@@ -304,15 +284,11 @@ const Home = () => {
           {showPopup && (
             <div className="home-overlay overlay">
               <div className="home-modal">
-                {/* {showConfetti && <Confetti width={500} height={500} />} */}
                 <div className="confetti-wrapper">
                   {[...Array(30)].map((_, index) => (
                     <div key={index} className="confetti"></div>
                   ))}
-                </div>
-                {/* <button className="home-close-button" onClick={closePopup}>
-                ✕
-              </button> */}
+                </div>           
                 <button className="welcome-close-button" onClick={closePopup}>
                   <FaTimes className="text-red-500 cursor-pointer" />
                 </button>
@@ -321,7 +297,7 @@ const Home = () => {
                   alt="Celebration"
                   className="celebration-icon"
                 />
-                <h2>Welcome on board, {user.username}!</h2>
+                <h2>Welcome {user.username}!</h2>
                 <p>Explore the features and manage your groups efficiently.</p>
                 <button className="welcome-button" onClick={closePopup}>
                   Let's go!
@@ -339,8 +315,9 @@ const Home = () => {
                   type="text"
                   value={campaignName}
                   onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="Enter Campaign Name"
+                  placeholder="Enter Campaign Name Max 15 letter"
                   className="modal-input"
+                  maxLength={15}
                 />
                 <button
                   className="modal-create-button"

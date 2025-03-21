@@ -10,6 +10,49 @@
     align-items: center;
     z-index: 1000;
 }
+
+.dropdown-container {
+  position: absolute;
+  left: 5px; /* Position the dropdown to the left */
+  top: -170px;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  width:150px;
+  max-height: 150px;
+  overflow: auto;
+  border-radius: 5px;
+  z-index: 1000;
+}
+
+.dropdown-container h4 {
+  font-size: 14px;
+  color: #333;
+}
+
+.select-group-container {
+  width: 180px;
+  position: relative;
+  display: inline-block;
+}
+.list-field{
+  font-size: 15px;
+  margin-bottom: 5px;
+  text-align: left;
+  font-weight: 550;
+}
+.list-field:hover{
+  background-color: rgb(235, 235, 235);
+
+}
+
+.no-variables {
+  font-size: 12px;
+  color: #777;
+}
+
+
+
 /* .ai-btn {
     background-color: #2f327d;
     color: white;
@@ -31,14 +74,13 @@
     width: 98% !important;
   } */
   .ai-btn {
+    width: 50px;
     margin-left: 10px;
     border: none;
     cursor: pointer;
-    background-color: #dedede;
-    border-radius: 5px;
     align-items: center;
     text-align: center;
-    padding: 5px 10px 10px 10px;
+    border: none;
   }
   @keyframes blink {
     0% { opacity: 1; }
@@ -47,7 +89,7 @@
   }
   
   .gemini-icon {
-    width: 22px;
+    width: 25px;
     height: 22px;
     animation: blink 1.5s infinite;
   }
@@ -136,7 +178,7 @@
     background: #fff;
     padding: 20px;
     border-radius: 8px;
-    width: 60%;
+    width: 70%;
     max-height: 500px;
     overflow-y: auto;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -151,6 +193,7 @@
 
 .button-group {
     margin-top: 10px;
+    display: flex;
 }
 .para-btn {
     background-color: #2f327d;
@@ -179,6 +222,22 @@
 
 @media (max-width:600px){
     .modal-content-para{
-        width:80%;
+        width:85%;
     }
+    .select-variable-para{
+      width:120px;
+      height:40px;
+  
+  }
+  .select-variable-para option{
+
+    padding:5px 0px;
+    font-size: 12px;
+}
+.dropdown-container{
+  width: 120px;
+}
+.para-btn{
+  font-size: 14px;
+}
 }

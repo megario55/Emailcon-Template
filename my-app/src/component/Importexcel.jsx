@@ -4,6 +4,7 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Importexcel.css";
+import { FaInfoCircle } from "react-icons/fa";
 import sampleexcel from "../Images/excelsheet.png";
 import apiConfig from "../apiconfig/apiConfig";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,9 @@ const ExcelModal = ({ isOpen, onClose, previewContent = [],bgColor}) => {
   const [excelData, setExcelData] = useState([]);
   const [fileName, setFileName] = useState('');
   const [message, setMessage] = useState("");
+  const [aliasName, setAliasName] = useState("");
+  const [isRuleOpen,setIsRuleOpen]=useState("");
+  const [emailData, setEmailData] = useState({ attachments: []}); // Email data object
     const [isScheduled, setIsScheduled] = useState(false); // Toggle state
   const [previewtext, setPreviewtext] = useState("");
     const [scheduledTime, setScheduledTime] = useState("");
@@ -29,40 +33,39 @@ const ExcelModal = ({ isOpen, onClose, previewContent = [],bgColor}) => {
     }
   }, [isOpen, previewContent,bgColor]);
 
-const handleFileUpload = (event) => {
-  const file = event.target.files[0];
-  setFileName(file.name);
-  const reader = new FileReader();
+ const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    setFileName(file.name);
+    const reader = new FileReader();
 
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
 
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      let headers = jsonData[0]; // Extract headers from first row
+      const formattedData = jsonData
+        .map((row, rowIndex) =>
+          row.map((cell, colIndex) => {
+            if (rowIndex > 0) { // Avoid modifying headers
+              const header = headers[colIndex]?.toLowerCase(); // Normalize headers
+              if (header.includes("date") && typeof cell === "number") {
+                const jsDate = new Date(Math.round((cell - 25569) * 86400 * 1000));
+                return jsDate.toISOString().split("T")[0]; // Convert only if column is a date
+              }
+            }
+            return cell;
+          })
+        )
+        .filter((row) => row.some((cell) => cell));
 
-    // Format the data as required
-    const formattedData = jsonData
-      .map((row, rowIndex) =>
-        row.map((cell, colIndex) => {
-          if (colIndex === 10 && typeof cell === 'number') { // Assuming date is in column 10 (11th column)
-            // Convert Excel date to JS date
-            const jsDate = new Date(Math.round((cell - 25569) * 86400 * 1000)); // Excel date to JS timestamp
-            return jsDate.toISOString().split('T')[0]; // Format as 'YYYY-MM-DD'
-          }
-          return cell;
-        })
-      )
-      .filter(row => row.some(cell => cell)); // Filter out empty rows
-
-    setExcelData(formattedData);
-    console.log(formattedData); // Log to verify data after conversion
+      setExcelData(formattedData);
+      console.log(formattedData);
+    };
+    reader.readAsArrayBuffer(file);
   };
-
-  reader.readAsArrayBuffer(file);
-};
-
 const sendscheduleExcel = async () => {
 
     if (excelData.length === 0) {
@@ -93,6 +96,10 @@ const sendscheduleExcel = async () => {
         toast.error("Please Enter Previewtext.");
         return;
     }
+    if (!aliasName) {
+      toast.error("Please Enter Alias Name.");
+      return;
+  }
      if (!scheduledTime) {
         toast.error("Please Select Date And Time");
         return;
@@ -105,6 +112,28 @@ const sendscheduleExcel = async () => {
       setIsLoadingsch(true); // Show loader
     let sentEmails = [];
     let failedEmails = [];
+    let attachments = [];
+    if (emailData.attachments && emailData.attachments.length > 0) {
+      const formData = new FormData();
+      
+      emailData.attachments.forEach((file) => {
+        formData.append("attachments", file);
+      });
+    
+      const uploadResponse = await axios.post(
+        `${apiConfig.baseURL}/api/stud/uploadfile`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+    
+      console.log("Uploaded Files:", uploadResponse.data);    
+      // Structure the uploaded files with original name and URL
+        attachments = uploadResponse.data.fileUrls.map((file, index) => ({
+        originalName: emailData.attachments[index].name, // Get original file name
+        fileUrl: file // Cloudinary URL
+      }));
+    }
+
 
     // Convert Excel data into an array of objects
     const formattedExcelData = rows.map(row => {
@@ -114,7 +143,7 @@ const sendscheduleExcel = async () => {
         }, {});
     });
 
-    try {   
+    try {      
         // Store initial campaign history with "Pending" status
         const campaignHistoryData = {
             campaignname: campaign.camname,
@@ -125,14 +154,17 @@ const sendscheduleExcel = async () => {
             failedcount: 0,
             subject: message,
             previewtext,
+            aliasName,
             previewContent,
             bgColor,
             sentEmails,
+            attachments,
             failedEmails,
             scheduledTime: new Date(scheduledTime).toISOString(),  
             status: "Scheduled On",
             senddate: new Date().toLocaleString(),
             user: user.id,
+            progress:0,
             groupId: "No id",
             exceldata: formattedExcelData, // Store Excel data inside campaign history
         };
@@ -140,7 +172,7 @@ const sendscheduleExcel = async () => {
         const campaignResponse = await axios.post(`${apiConfig.baseURL}/api/stud/camhistory`, campaignHistoryData);
         console.log("Initial Campaign History Saved:", campaignResponse.data);
            toast.success("Email scheduled successfully!");
-        navigate("/home");
+        navigate("/campaigntable");
         sessionStorage.removeItem("firstVisit");
         sessionStorage.removeItem("toggled");
       }
@@ -183,18 +215,44 @@ const handleSend = async () => {
         toast.error("Please Enter Previewtext.");
         return;
     }
+    if(!aliasName){
+        toast.error("Please Enter Alias Name");
+        return;
+    }
     
     if (!message) {
         toast.error("Please Enter Subject.");
         return;
     }
   setIsLoading(true); // Show loader
-    navigate("/home");
+    navigate("/campaigntable");
     sessionStorage.removeItem("firstVisit");
     sessionStorage.removeItem("toggled");
 
     let sentEmails = [];
     let failedEmails = [];
+     let attachments = [];
+            if (emailData.attachments && emailData.attachments.length > 0) {
+              const formData = new FormData();
+              
+              emailData.attachments.forEach((file) => {
+                formData.append("attachments", file);
+              });
+            
+              const uploadResponse = await axios.post(
+                `${apiConfig.baseURL}/api/stud/uploadfile`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+              );
+            
+              console.log("Uploaded Files:", uploadResponse.data);    
+              // Structure the uploaded files with original name and URL
+                attachments = uploadResponse.data.fileUrls.map((file, index) => ({
+                originalName: emailData.attachments[index].name, // Get original file name
+                fileUrl: file // Cloudinary URL
+              }));
+            }
+        
 
     // Convert Excel data into an array of objects
     const formattedExcelData = rows.map(row => {
@@ -216,11 +274,14 @@ const handleSend = async () => {
             subject: message,
             previewtext,
             previewContent,
+            aliasName,
             bgColor,
             sentEmails,
+            attachments,
             failedEmails,
             scheduledTime: new Date(),
             status: "Pending",
+            progress:0,
             senddate: new Date().toLocaleString(),
             user: user.id,
             groupId: "No id",
@@ -232,9 +293,10 @@ const handleSend = async () => {
         console.log("Initial Campaign History Saved:", campaignResponse.data);
 
         // Process each row and send emails
-        for (const row of rows) {
-            const email = row[emailIndex];
-            if (!email) continue; // Skip if email is missing in the row
+for (let index = 0; index < rows.length; index++) {
+  const row = rows[index]; // Get row data
+  const email = row[emailIndex];
+  if (!email) continue; // Skip if email is empty
 
             // Generate personalized content from template
             const personalizedContent = previewContent.map(item => {
@@ -256,6 +318,8 @@ const handleSend = async () => {
                 body: JSON.stringify(personalizedContent),
                 bgColor,
                 previewtext,
+                attachments,
+                aliasName,
                 userId: user.id,
             };
 
@@ -267,6 +331,32 @@ const handleSend = async () => {
                 console.error(`Failed to send email to ${email}:`, error);
                 failedEmails.push(email);
             }
+           // After the email loop ends, calculate the final progress and status
+const totalEmails = rows.filter(row => row[emailIndex]).length; // Count non-empty emails
+const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+
+// Determine final progress & status
+let finalProgress;
+
+if (failedEmails.length > 0) {
+    finalProgress = failProgress;
+} else {
+    finalProgress = successProgress;
+}
+
+//  Update campaign history with final status and progress
+await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`, {
+    sendcount: sentEmails.length,
+    sentEmails,
+    failedEmails: failedEmails.length > 0 ? failedEmails : [],
+    failedcount: failedEmails.length,
+    status: "In Progress", // Update status to "In Progress"
+    progress: finalProgress, // Updated progress
+});
+
+console.log(`Final Progress: ${finalProgress}%`);
+
         }
 
         // Update campaign history with final status
@@ -279,12 +369,10 @@ const handleSend = async () => {
             status: finalStatus,
         });
 
-        toast.success("Emails sent successfully!");
-
+        console.log("Emails sent successfully");
     } catch (error) {
         console.error("Error sending emails:", error.response?.data || error.message);
         setIsLoading(false);
-        toast.error("Failed to send emails. Check the console for details.");
     }
 };
 
@@ -298,6 +386,14 @@ if (!isOpen) return null;
           &times;
         </button>
         <h2>Upload and Send Emails</h2>
+        <label htmlFor="aliasName-input">Alias Name:</label>
+        <input
+          type="text"
+          id="aliasName-input"
+          value={aliasName}
+          onChange={(e) => setAliasName(e.target.value)}
+          placeholder="Enter Alias Name"
+        />
         <label htmlFor="subject-input">Subject:</label>
         <input
           type="text"
@@ -314,8 +410,75 @@ if (!isOpen) return null;
           onChange={(e) => setPreviewtext(e.target.value)}
           placeholder="Enter Preview Text"
         />
+        {/* Attachment File Input */}
+                        <label htmlFor="attachments">Attach Files(Max-10):</label>
+                          {/* Attachment File Input */}
+                          <input
+                          type="file"
+                          multiple
+                          onChange={(e) => {
+                            const newFiles = Array.from(e.target.files);
+                            const allFiles = [...(emailData.attachments || []), ...newFiles];
+                  
+                            if (allFiles.length > 10) {
+                              toast.warning("You can only attach up to 10 files.");
+                              return;
+                            }
+                  
+                            setEmailData({ ...emailData, attachments: allFiles });
+                          }}
+                        />
+                  
+                        {/* Display Attached Files */}
+                        <div className="file-list">
+                          {emailData.attachments && emailData.attachments.length > 0 ? (
+                            <ol>
+                              {emailData.attachments.map((file, index) => (
+                                <li key={index}>
+                                  {file.name} - {Math.round(file.size / 1024)} KB
+                                  <button className="attach-close"
+                                    onClick={() => {
+                                      const newAttachments = emailData.attachments.filter(
+                                        (_, i) => i !== index
+                                      );
+                                      setEmailData({ ...emailData, attachments: newAttachments });
+                                    }}
+                                  >
+                                    X
+                                  </button>
+                                </li>
+                              ))}
+                            </ol>
+                          ) : (
+                            <p>No files selected</p>
+                          )}
+                        </div>
         <div className="excel-modal-body">
-          <h4>Sample excel format</h4>
+          <h4>Sample excel format
+            <FaInfoCircle
+                                              className="info-icon-rule"
+                             onClick={() => {
+                                setIsRuleOpen(true);
+                              }}
+                                              style={{ cursor: "pointer", marginLeft: "5px" }}
+                              />
+          </h4>
+          {/* Modal */}
+ {isRuleOpen && (
+        <div className="rule-modal-overlay">
+          <div className="rule-modal-container">
+          <h3>Steps to Upload a File</h3>
+<ol>
+  <li>The First Name, Last Name, and Email fields are mandatory.</li>
+  <li>All other fields are optional. You can create custom fields based on your requirements.</li>
+</ol>
+
+            <button onClick={() => setIsRuleOpen(false)} className="rule-close-button">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
           <img src={sampleexcel} alt="Sample Excel Format" className="sample-excel-image" />
            <div style={{display:"flex",gap:"10px"}}>
               <a href="../file/democsvfile.csv" download>
@@ -323,7 +486,15 @@ if (!isOpen) return null;
              <a href="../file/demoexcelfile.xlsx" download>
              <button className="modal-btn btn-download-sample">Download Sample xlsx File</button></a>
             </div>
-          <h4>Upload excel file</h4>
+          <h4>Upload excel file
+            <FaInfoCircle
+                                              className="info-icon-rule"
+                             onClick={() => {
+                                setIsRuleOpen(true);
+                              }}
+                                              style={{ cursor: "pointer", marginLeft: "5px" }}
+                              />
+          </h4>
           <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
           {fileName && <p>Uploaded File: {fileName}</p>}
           {excelData.length > 0 && (

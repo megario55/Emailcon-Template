@@ -1,4 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef ,useEffect } from "react";
+import axios from "axios";
+import apiConfig from "../apiconfig/apiConfig.js";
 import { motion } from "framer-motion";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Editor } from "@tinymce/tinymce-react";
@@ -13,6 +15,57 @@ const ParaEditor = ({ isOpen, content, onSave, onClose }) => {
   const [aiResponse, setAiResponse] = useState("");
   const [chatbotVisible, setChatbotVisible] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(false);
+  const [fieldNames, setFieldNames] = useState({});
+  const [groups, setGroups] = useState([]); // Stores group names
+  const [students, setStudents] = useState([]); // Stores all students
+  const user = JSON.parse(localStorage.getItem("user"));
+
+useEffect(() => {
+  if (!user?.id) return;
+
+  const fetchGroupsAndStudents = async () => {
+    try {
+      const groupsResponse = await axios.get(`${apiConfig.baseURL}/api/stud/groups/${user.id}`);
+      setGroups(groupsResponse.data);
+
+      const studentsResponse = await axios.get(`${apiConfig.baseURL}/api/stud/students`);
+      setStudents(studentsResponse.data);
+    } catch (err) {
+      console.log("Error fetching data:", err);
+    }
+  };
+
+  fetchGroupsAndStudents();
+}, [user.id]); 
+
+const handleGroupChange = (e) => {
+  const groupName = e.target.value;
+  setSelectedGroup(groupName);
+
+  if (!students || students.length === 0) {
+    console.log("No students available yet.");
+    return;
+  }
+
+  console.log(`All students:`, students);
+  console.log(`Selected Group for Heading `, groupName);
+
+  const filteredStudents = students.filter(
+    (student) => student.group && student.group._id === groupName
+  );
+
+  const sampleStudent = filteredStudents.length > 0 ? filteredStudents[0] : null;
+
+  const newFieldNames = sampleStudent
+    ? Object.keys(sampleStudent).filter(
+        (key) => key !== "_id" && key !== "group" && key !== "__v"
+      )
+    : [];
+
+  setFieldNames(newFieldNames);
+};
+
 
   const editorRef = useRef(null);
 
@@ -26,9 +79,10 @@ const ParaEditor = ({ isOpen, content, onSave, onClose }) => {
       editor.focus();
       editor.selection.setContent(value);
     }
+    setSelectedGroup(false);
   };
 
-  const handleCopyResponse = () => {
+ const handleCopyResponse = () => {
     navigator.clipboard.writeText(aiResponse).then(() => {
       setTooltipVisible(true);
       setTimeout(() => setTooltipVisible(false), 2000);
@@ -79,26 +133,54 @@ const ParaEditor = ({ isOpen, content, onSave, onClose }) => {
         <div className="button-group">
           <button className="para-btn" onClick={() => onSave(editorContent)}>Save</button>
           <button className="para-btn" onClick={onClose}>Cancel</button>
+          <div className="select-group-container">
+      {/* Select Group */}
+      <select
+        onChange={(e) => handleGroupChange(e)}
+        defaultValue=""
+        className="select-variable-para"
+      >
+        <option value="" disabled className="template-title">
+          Add Variable
+        </option>
+        <option value="" disabled>
+          Select Group
+        </option>
+        {groups.map((group, idx) => (
+          <option key={idx} value={group._id}>
+            {group.name}
+          </option>
+        ))}
+      </select>
 
-          <select onChange={(e) => handleInsertVariable(e.target.value)} className="select-variable-para">
-            <option value="" disabled selected>Add Variable</option>
-            <option value="{Fname}">First Name</option>
-            <option value="{Lname}">Last Name</option>
-            <option value="{Email}">Email</option>
-            <option value="{EMIamount}">EMI Amount</option>
-            <option value="{Balance}">Balance</option>
-            <option value="{Totalfees}">Total Fees</option>
-            <option value="{Coursename}">Course Name</option>
-            <option value="{Coursetype}">Course Type</option>
-            <option value="{Offer}">Offer</option>
-            <option value="{Number}">Number</option>
-            <option value="{Date}">Date</option>
-            <option value="{College}">College</option>
-          </select>
+      {/* Show fields only for the selected heading */}
+      {selectedGroup && (
+        <div className="dropdown-container">
+          <p className="template-title">
+            <span>Add</span> Variable
+          </p>
+          {fieldNames && fieldNames.length > 0 ? (
+            <div>
+              {fieldNames.map((field, idx) => (
+                <div
+                  className="list-field"
+                  key={idx}
+                  onClick={() => handleInsertVariable(`{${field}}`)} // Correct index
+                >
+                  {field}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-variables">No Variables</p>
+          )}
+        </div>
+      )}
+    </div>
 
-      <button className="ai-btn" onClick={handleOpenChatbot}>
+      <p className="ai-btn" onClick={handleOpenChatbot}>
            <img src={aiicon} alt="Gemini AI" className="gemini-icon" />
-      </button>
+      </p>
         </div>
 
         {/* Animated AI Chatbot */}

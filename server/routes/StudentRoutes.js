@@ -1,8 +1,6 @@
 import express from "express";
 import nodemailer from "nodemailer";
-import {
-  upload
-} from "../config/cloudinary.js";
+import {upload} from "../config/cloudinary.js";
 import Student from "../models/Student.js";
 import Group from "../models/Group.js";
 import Campaign from "../models/Campaign.js";
@@ -12,10 +10,7 @@ import Camhistory from "../models/Camhistory.js";
 // import ExcelStudent from "../models/Excelstudent.js";
 import { decryptPassword } from "../config/encryption.js";
 
-
 const router = express.Router();
-
-
 
 // Upload image to Cloudinary
 router.post('/upload', upload.single('image'), (req, res) => {
@@ -28,11 +23,31 @@ router.post('/upload', upload.single('image'), (req, res) => {
   }
 });
 
+router.post("/uploadfile", upload.array("attachments", 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      console.error("No files received");
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    // Extract URLs directly from req.files
+    const fileUrls = req.files.map(file => file.path); // Cloudinary returns the URL in 'path'
+
+    res.json({ fileUrls });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ error: "File upload failed", details: error.message });
+  }
+});
+
+
+
 // Route to send a test email
 router.post('/sendtestmail', async (req, res) => {
   try {
     const {
       emailData,
+      attachments,
       previewContent,
       bgColor,
       userId
@@ -40,6 +55,8 @@ router.post('/sendtestmail', async (req, res) => {
 
     // Find the current user by userId
     const user = await User.findById(userId);
+    console.log("Attachments Data:",attachments);
+
 
     if (!user) {
       return res.status(404).send('User not found');
@@ -91,7 +108,25 @@ router.post('/sendtestmail', async (req, res) => {
         return `<div style="text-align:${item.style.textAlign};margin:0 auto !important">
         <img src="${item.src}" style="margin-top:10px;width:${item.style.width};pointer-events:none;height:${item.style.height};border-radius:10px;background-color:${item.style.backgroundColor}"/>
         </div>`;
-      } else if (item.type === 'multi-image') {
+      }
+      else if (item.type === 'cardimage') {
+        return `
+        <table role="presentation" align="center" width="${item.style.width}" style="border-collapse: separate; border-spacing: 0; margin: 10px auto!important;">
+    <tr>
+        <td align="center" width="${item.style.width}" style="vertical-align: top; border-radius: 10px; padding: 0;">
+            <!-- Image -->
+            <img src="${item.src1}" width="${item.style.width}" style="display: block; width: 100%; height: auto; max-width: ${item.style.width}; border-top-left-radius: 10px; border-top-right-radius: 10px; object-fit: cover;" alt="image"/>
+            
+            <!-- Text Content -->
+            <div style="font-size: 15px; background-color: ${item.style1.backgroundColor || '#f4f4f4'};width: ${item.style.width}; color: ${item.style1.color || 'black'}; padding:10px 0px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+                ${item.content1}
+            </div>
+        </td>
+    </tr>
+</table>`
+      }
+     
+       else if (item.type === 'multi-image') {
         return `<table class="multi" style="width:100%; border-collapse:collapse;margin:10px auto !important;">
         <tr>
             <td style="width:50%;text-align:center;padding:8px; vertical-align:top;">
@@ -116,6 +151,20 @@ router.post('/sendtestmail', async (req, res) => {
     </table>`
 
       }
+
+      else if (item.type === 'multipleimage') {
+        return `<table class="multi" style="width:100%; border-collapse:collapse;margin:10px auto !important;">
+        <tr>
+            <td style="width:50%;text-align:center;padding:8px; vertical-align:top;">
+                <img src="${item.src1}" style="border-radius:10px;object-fit:contain;height:230px !important;width:100%;pointer-events:none !important; object-fit:cover;" alt="image"/>
+            </td>
+            <td style="width:50%;text-align:center;padding:8px; vertical-align:top;">
+                <img src="${item.src2}" style="border-radius:10px;object-fit:contain;height:230px !important;width:100%;pointer-events:none !important; object-fit:cover;" alt="image"/>
+            </td>
+        </tr>
+    </table>`
+      }
+
 
       else if (item.type === 'icons') {
         return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:${item.ContentStyle.backgroundColor || 'white'}; border-radius:${item.ContentStyle.borderRadius || '10px'}; margin:15px 0px !important;">
@@ -150,29 +199,27 @@ router.post('/sendtestmail', async (req, res) => {
         </table>`;
     }
 
-    
-else if (item.type === 'video-icon') {
-  return `
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
-<tr>
-  <td align="center">
-    <table role="presentation" width="${item.style.width}" height="${item.style.height}" cellspacing="0" cellpadding="0" border="0" 
-           style="background: url('${item.src1}') no-repeat center center; background-size: cover; border-radius: 10px; overflow: hidden;margin:15px 0px !important;">
+    else if (item.type === 'video-icon') {
+      return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
       <tr>
-        <td align="center" valign="middle" style="height:${item.style.height}; padding: 0;">
-          <a href="${item.link}" target="_blank">
-            <img src="${item.src2}" width="70" height="70" 
-                 style="display: block; border-radius: 50%; background-color: white;" 
-                 alt="Click Now" />
-          </a>
+        <td align="center">
+          <table role="presentation" width="${item.style.width}" height="${item.style.height}" cellspacing="0" cellpadding="0" border="0"
+                 style="background: url('${item.src1}') no-repeat center center; background-size: cover; border-radius: 10px; overflow: hidden; margin: 15px 0px !important;">
+            <tr>
+              <td align="center" valign="middle" style="height: ${item.style.height}; padding: 0;">
+                <a href="${item.link}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
+  <img src="${item.src2}" width="70" height="70" 
+       style="display: block; border-radius: 50%; background-color: white; cursor: pointer;" 
+       alt="Play Video" border="0"/>
+</a>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
-    </table>
-  </td>
-</tr>
-</table>`;
-}
-
+    </table>`;
+    }
+    
       else if (item.type === 'imagewithtext') {
         return `<table class="image-text" style="width:100%;height:220px !important;background-color:${item.style1.backgroundColor || '#f4f4f4'}; border-collapse:seperate;border-radius:${item.style1.borderRadius || '10px'};margin:15px 0px !important">
         <tr>
@@ -216,7 +263,7 @@ else if (item.type === 'video-icon') {
     }).join('');
 
     const mailOptions = {
-      from: email,
+      from: `"${emailData.aliasName}" <${email}>`,
       to: emailData.recipient,
       subject: emailData.subject,
       html: `
@@ -232,6 +279,7 @@ else if (item.type === 'video-icon') {
                 .para{
                   font-size:15px !important;
                 }
+ 
                 .img-para{
                   font-size:15px !important;
                 }
@@ -291,6 +339,25 @@ else if (item.type === 'video-icon') {
             <div class="main" style ="background-color:${bgColor || "white"};box-shadow:0 4px 8px rgba(0, 0, 0, 0.2);border:1px solid rgb(255, 245, 245);padding:20px;width:650px;height:auto;border-radius:10px;margin:0 auto;" >
               ${emailContent}
             </div>
+            ${attachments && attachments.length > 0 ? `
+        <div style="margin-top:20px; padding:10px; border-radius:10px; background-color:#f4f4f4;">
+    <h3 style="color:#333;">Attachments</h3>
+    <ul style="list-style:none; padding:0;">
+      ${attachments?.map(att => `
+        <li style="margin-bottom:10px;">
+        <a href="${att.fileUrl.replace('/image/upload/', '/raw/upload/') + '?fl_attachment=true'}" 
+         download="${att.originalName}"
+           style="display:inline-block; padding:8px 15px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">
+            ${att.originalName} 
+            <img src="https://img.icons8.com/ios-glyphs/20/000000/download.png" 
+             style="margin-left: 5px; vertical-align: middle;" alt="Download">
+          </a>
+        </li>
+      `).join("")}
+    </ul>
+  </div>
+  ` : ''}
+
           </body>
       
         </html>
@@ -314,11 +381,13 @@ router.post('/sendexcelEmail', async (req, res) => {
   const {
     recipientEmail,
     subject,
+    aliasName,
     body,
-    bgColor,
+    bgColor,attachments,
     previewtext,
     userId
   } = req.body;
+  console.log("Attachments Data:",attachments);
 
   if (!recipientEmail) {
     return res.status(400).send("Email is required.");
@@ -426,6 +495,22 @@ router.post('/sendexcelEmail', async (req, res) => {
       </tr>
   </table>`;
 
+  case 'cardimage': 
+    return `
+    <table role="presentation" align="center"  style="${styleString};border-collapse: separate; border-spacing: 0; margin: 10px auto!important;">
+<tr>
+    <td align="center"  style="vertical-align: top;${styleString} border-radius: 10px; padding: 0;">
+        <!-- Image -->
+        <img src="${src1}" style="display: block;${styleString}; border-top-left-radius: 10px; border-top-right-radius: 10px; object-fit: cover;" alt="image"/>
+        
+        <!-- Text Content -->
+        <div style="font-size: 15px;${styleString};${styleString1}; padding:10px 0px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+            ${content1}
+        </div>
+    </td>
+</tr>
+</table>`
+  
       case 'textwithimage':
         return `<table class="image-text" style="width:100%;height:220px !important;border-collapse:seperate;border-radius:10px;margin:15px 0px !important;${styleString};">
       <tr>
@@ -450,7 +535,7 @@ router.post('/sendexcelEmail', async (req, res) => {
            style="${styleStringvideo};background: url('${src1}') no-repeat center center; background-size: cover; border-radius: 10px; overflow: hidden;margin:15px 0px !important;">
       <tr>
         <td align="center" valign="middle" style="${styleStringvideo};padding: 0;">
-          <a href="${link}" target="_blank">
+          <a href="${link}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
             <img src="${src2}" width="70" height="70" 
                  style="display: block; border-radius: 50%; background-color: white;" 
                  alt="Click Now" />
@@ -518,6 +603,18 @@ router.post('/sendexcelEmail', async (req, res) => {
               </td>
           </tr>
         </table>`;
+        case 'multipleimage':
+          return `<table class="multi" style="width:100%; border-collapse:collapse;margin:10px auto !important;">
+          <tr>
+              <td style="width:50%;text-align:center;padding:8px; vertical-align:top;">
+                  <img src="${src1}" style="border-radius:10px;object-fit:contain;height:230px !important;width:100%;pointer-events:none !important; object-fit:cover;" alt="image"/>
+              </td>
+              <td style="width:50%;text-align:center;padding:8px; vertical-align:top;">
+                  <img src="${src2}" style="border-radius:10px;object-fit:contain;height:230px !important;width:100%;pointer-events:none !important; object-fit:cover;" alt="image"/>
+              </td>
+          </tr>
+      </table>`
+        
       case 'head':
         return `<p class="head" style="${styleString};border-radius:10px;padding:10px;font-weight:bold;">${content}</p>`;
       case 'para':
@@ -538,7 +635,7 @@ router.post('/sendexcelEmail', async (req, res) => {
     const dynamicHtml = bodyElements.map(generateHtml).join('');
 
     const mailOptions = {
-      from: email,
+      from: `"${aliasName}" <${email}>`,
       to: recipientEmail,
       subject: subject,
       html: `
@@ -625,6 +722,25 @@ router.post('/sendexcelEmail', async (req, res) => {
               <div class="main" style="background-color:${bgColor || "white"}; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); border:1px solid rgb(255, 245, 245); padding:20px;width:650px;height:auto;border-radius:10px;margin:0 auto;">
                 ${dynamicHtml}
               </div>
+                       ${attachments && attachments.length > 0 ? `
+        <div style="margin-top:20px; padding:10px; border-radius:10px; background-color:#f4f4f4;">
+    <h3 style="color:#333;">Attachments</h3>
+    <ul style="list-style:none; padding:0;">
+      ${attachments?.map(att => `
+        <li style="margin-bottom:10px;">
+        <a href="${att.fileUrl.replace('/image/upload/', '/raw/upload/') + '?fl_attachment=true'}" 
+         download="${att.originalName}"
+           style="display:inline-block; padding:8px 15px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">
+            ${att.originalName} 
+            <img src="https://img.icons8.com/ios-glyphs/20/000000/download.png" 
+             style="margin-left: 5px; vertical-align: middle;" alt="Download">
+          </a>
+        </li>
+      `).join("")}
+    </ul>
+  </div>
+  ` : ''}
+
           </body>
         </html>
       `
@@ -645,8 +761,9 @@ router.post('/sendbulkEmail', async (req, res) => {
   const {
     recipientEmail,
     subject,
+    aliasName,
     body,
-    bgColor,
+    bgColor,attachments,
     previewtext,
     userId
   } = req.body;
@@ -757,6 +874,24 @@ router.post('/sendbulkEmail', async (req, res) => {
       </tr>
   </table>`;
 
+  
+  case 'cardimage': 
+    return `
+    <table role="presentation" align="center"  style="${styleString};border-collapse: separate; border-spacing: 0; margin: 10px auto!important;">
+<tr>
+    <td align="center"  style="vertical-align: top;${styleString} border-radius: 10px; padding: 0;">
+        <!-- Image -->
+        <img src="${src1}" style="display: block;${styleString}; border-top-left-radius: 10px; border-top-right-radius: 10px; object-fit: cover;" alt="image"/>
+        
+        <!-- Text Content -->
+        <div style="font-size: 15px;${styleString};${styleString1}; padding:10px 0px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;">
+            ${content1}
+        </div>
+    </td>
+</tr>
+</table>`
+  
+
       case 'textwithimage':
         return `<table class="image-text" style="width:100%;height:220px !important;border-collapse:seperate;border-radius:10px;margin:15px 0px !important;${styleString};">
       <tr>
@@ -781,7 +916,7 @@ router.post('/sendbulkEmail', async (req, res) => {
            style="${styleStringvideo};background: url('${src1}') no-repeat center center; background-size: cover; border-radius: 10px; overflow: hidden;margin:15px 0px !important;">
       <tr>
         <td align="center" valign="middle" style="${styleStringvideo};padding: 0;">
-          <a href="${link}" target="_blank">
+            <a href="${link}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
             <img src="${src2}" width="70" height="70" 
                  style="display: block; border-radius: 50%; background-color: white;" 
                  alt="Click Now" />
@@ -849,6 +984,19 @@ router.post('/sendbulkEmail', async (req, res) => {
               </td>
           </tr>
         </table>`;
+
+        case 'multipleimage':
+          return `<table class="multi" style="width:100%; border-collapse:collapse;margin:10px auto !important;">
+          <tr>
+              <td style="width:50%;text-align:center;padding:8px; vertical-align:top;">
+                  <img src="${src1}" style="border-radius:10px;object-fit:contain;height:230px !important;width:100%;pointer-events:none !important; object-fit:cover;" alt="image"/>
+              </td>
+              <td style="width:50%;text-align:center;padding:8px; vertical-align:top;">
+                  <img src="${src2}" style="border-radius:10px;object-fit:contain;height:230px !important;width:100%;pointer-events:none !important; object-fit:cover;" alt="image"/>
+              </td>
+          </tr>
+      </table>`
+
       case 'head':
         return `<p class="head" style="${styleString};border-radius:10px;padding:10px;font-weight:bold;">${content}</p>`;
       case 'para':
@@ -869,7 +1017,7 @@ router.post('/sendbulkEmail', async (req, res) => {
     const dynamicHtml = bodyElements.map(generateHtml).join('');
 
     const mailOptions = {
-      from: email,
+      from: `"${aliasName}" <${email}>`,
       to: recipientEmail,
       subject: subject,
       html: `
@@ -956,6 +1104,25 @@ router.post('/sendbulkEmail', async (req, res) => {
               <div class="main" style="background-color:${bgColor || "white"}; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); border:1px solid rgb(255, 245, 245); padding:20px;width:650px;height:auto;border-radius:10px;margin:0 auto;">
                 ${dynamicHtml}
               </div>
+            ${attachments && attachments.length > 0 ? `
+        <div style="margin-top:20px; padding:10px; border-radius:10px; background-color:#f4f4f4;">
+    <h3 style="color:#333;">Attachments</h3>
+    <ul style="list-style:none; padding:0;">
+      ${attachments?.map(att => `
+        <li style="margin-bottom:10px;">
+        <a href="${att.fileUrl.replace('/image/upload/', '/raw/upload/') + '?fl_attachment=true'}" 
+         download="${att.originalName}"
+           style="display:inline-block; padding:8px 15px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">
+            ${att.originalName} 
+            <img src="https://img.icons8.com/ios-glyphs/20/000000/download.png" 
+             style="margin-left: 5px; vertical-align: middle;" alt="Download">
+          </a>
+        </li>
+      `).join("")}
+    </ul>
+  </div>
+  ` : ''}
+
           </body>
         </html>
       `
@@ -1168,51 +1335,20 @@ router.delete('/students', async (req, res) => {
 
 // 5. PUT route to edit a student's details
 router.put("/students/:id", async (req, res) => {
-  const {
-    Fname,
-    Lname,
-    Email,
-    EMIamount,
-    Balance,
-    Totalfees,
-    Coursetype,
-    Coursename,
-    Offer,
-    Number,
-    Date,
-    group
-  } = req.body;
   try {
-    const student = await Student.findById(req.params.id);
+    const updatedStudent = await Student.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body }, // Automatically update all fields, including dynamic ones
+      { new: true, runValidators: true } // Return updated student and validate fields
+    );
 
-    if (!student) {
-      return res.status(404).json({
-        message: "Student not found"
-      });
+    if (!updatedStudent) {
+      return res.status(404).json({ message: "Student not found" });
     }
 
-    // Update the student details
-    student.Fname = Fname;
-    student.Lname = Lname;
-    student.Email = Email;
-    student.EMIamount = EMIamount;
-    student.Totalfees = Totalfees;
-    student.Balance = Balance;
-    student.Coursename = Coursename;
-    student.Coursetype = Coursetype;
-    student.Offer = Offer;
-    student.Number = Number;
-    student.Date = Date;
-    student.group = group; // Ensure this is the correct reference (group ID)
-
-    await student.save();
-
-    res.json(student);
+    res.json(updatedStudent);
   } catch (err) {
-    res.status(500).json({
-      message: "Error updating student",
-      error: err
-    });
+    res.status(500).json({ message: "Error updating student", error: err });
   }
 });
 
@@ -1340,7 +1476,9 @@ router.post("/camhistory", async (req, res) => {
       subject,
       previewtext,
       scheduledTime,
+      attachments,
       status,
+      progress,aliasName,
       senddate,
       previewContent,
       exceldata,
@@ -1360,9 +1498,11 @@ router.post("/camhistory", async (req, res) => {
       subject,
       previewtext,
       sentEmails,
+      attachments,
       failedEmails,
-      scheduledTime,
+      scheduledTime,aliasName,
       status,
+      progress,
       senddate,
       previewContent,
       bgColor,
@@ -1423,6 +1563,7 @@ router.put("/camhistory/:id", async (req, res) => {
       failedEmails,
       scheduledTime,
       status,
+      progress
     } = req.body;
 
     // Find the campaign by ID and update it
@@ -1434,6 +1575,7 @@ router.put("/camhistory/:id", async (req, res) => {
         failedEmails,
         scheduledTime,
         status,
+        progress
       }, {
         new: true
       }

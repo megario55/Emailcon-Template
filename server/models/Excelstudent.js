@@ -1,17 +1,17 @@
 import mongoose from "mongoose";
 
 const ExcelstudentSchema = new mongoose.Schema({
-    Fname: String,
-    Lname: String,
-    Email: String,
-    EMIamount: Number,
-    Balance: Number,
-    Totalfees: Number,
-    Coursename: String,
-    Coursetype: String,
-    Offer: String,
-    Number: String,
-    Date: String,
+    Fname: {
+        type: String,
+
+    },
+    Lname: {
+        type: String,
+
+    },
+    Email: {
+        type: String,
+    },
     
     // Allow additional dynamic fields
     additionalFields: {
@@ -24,8 +24,7 @@ const ExcelstudentSchema = new mongoose.Schema({
     },
 
 }, {
-    strict: false
-});
+    strict: false,versioKey:false});
 
 const ExcelStudent= mongoose.model('ExcelStudent', ExcelstudentSchema);
 export default ExcelStudent;

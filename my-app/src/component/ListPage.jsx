@@ -3,11 +3,8 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./ListPage.css";
-import { FiEdit, FiTrash2, FiRefreshCw } from 'react-icons/fi'; // Importing icons
+import { FiEdit, FiTrash2, FiRefreshCw,FiEye } from 'react-icons/fi'; // Importing icons
 import apiConfig from "../apiconfig/apiConfig";
-
-
-
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, message }) => {
   if (!isOpen) return null;
@@ -37,20 +34,7 @@ const ListPage = ({ onClose }) => {
   const [selectedGroup, setSelectedGroup] = useState(groups.length > 0 ? groups[0]._id : "");
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [editingStudent, setEditingStudent] = useState(null);
-  const [editFormData, setEditFormData] = useState({
-    Fname: "",
-    Lname: "",
-    Email: "",
-    EMIamount: "",
-    Balance:"",
-    Totalfees:"",
-    Coursename:"",
-    Coursetype:"",
-    Offer:"",
-    Number:"",
-    Date:"",
-    group: "",
-  });
+  const [editFormData, setEditFormData] = useState({});
   const [editingGroup, setEditingGroup] = useState(null);
   const [groupName, setGroupName] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -178,70 +162,55 @@ fetchGroupsAndStudents();
         .catch((err) => toast.error("Failed to update group name"));
     }
   };
-
-  // Edit student details
-const handleEditStudent = (student) => {
-    toast.success("Edit contact detail in bottom of tab");
+  const handleEditStudent = (student) => {
+    // toast.success("Edit contact detail in bottom of tab");
     console.log(student); // Debug log
     setEditingStudent(student);
-    setEditFormData({
-        Fname: student.Fname,
-        Lname:student.Lname,
-        Email: student.Email,
-        EMIamount:student.EMIamount,
-        Balance:student.Balance,
-        Totalfees:student.Totalfees,
-        Coursename:student.Coursename,
-        Coursetype:student.Coursetype,
-        Offer:student.Offer,
-        Number:student.Number,
-        Date:student.Date,
-        group: student.group?._id || "",
+  
+    // Clone the student object and remove `_id`
+    const { _id,__v, ...updatedFormData } = student;
+  
+    // Ensure 'group' field gets the correct ID
+    if (student.group?._id) {
+      updatedFormData.group = student.group._id;
+    }
+  
+    setEditFormData(updatedFormData); // Set the form data without `_id`
+  };
+  
+
+const handleSaveStudent = () => {
+  if (Object.values(editFormData).some((val) => val === "")) {
+    toast.error("All fields are required");
+    return;
+  }
+
+  setShowEditingToast(true); // Show toast
+
+  axios
+    .put(`${apiConfig.baseURL}/api/stud/students/${editingStudent._id}`, editFormData)
+    .then((response) => {
+      const updatedStudent = response.data;
+
+      // Update the students list
+      setStudents((students) =>
+        students.map((student) =>
+          student._id === updatedStudent._id ? updatedStudent : student
+        )
+      );
+
+      setEditingStudent(null); // Close the edit form
+      toast.success("Details updated successfully!");
+    })
+    .catch((err) => {
+      console.error("Error updating student:", err);
+      toast.error("Failed to update student");
+    })
+    .finally(() => {
+      setShowEditingToast(false); // Hide toast
     });
 };
 
-const handleSaveStudent = () => {
-  if (editFormData.Fname.trim() && editFormData.Lname.trim() && editFormData.Email.trim() && editFormData.Coursename.trim() && editFormData.Coursetype.trim() && editFormData.Date.trim() && editFormData.group) {
-     setShowEditingToast(true); // Show toast
-    axios.put(`${apiConfig.baseURL}/api/stud/students/${editingStudent._id}`, {
-        Fname: editFormData.Fname,
-        Lname: editFormData.Lname,
-        Email: editFormData.Email,
-        EMIamount: editFormData.EMIamount,
-        Balance: editFormData.Balance,
-        Totalfees: editFormData.Totalfees,
-        Coursename: editFormData.Coursename,
-        Coursetype: editFormData.Coursetype,
-        Offer: editFormData.Offer,
-        Number: editFormData.Number,    
-        Date: editFormData.Date,
-        group: editFormData.group, // Send only the group ID here
-      })
-      .then((response) => {
-        const updatedStudent = response.data;
-
-        // Update the students list with the updated student data
-        setStudents(
-          students.map((student) =>
-            student._id === updatedStudent._id ? updatedStudent : student
-          )
-        );
-
-        setEditingStudent(null); // Close the edit form
-        toast.success("Details updated successfully!");
-      })
-      .catch((err) => {
-        console.error("Error updating student:", err);
-        toast.error("Failed to update student");
-      })
-       .finally(() => {
-      setShowEditingToast(false); // Hide toast
-      });
-      
-  } else {
-    toast.error("All fields are required");
-  }
-};
 
   const filteredStudents = selectedGroup
     ? students.filter(
@@ -249,7 +218,10 @@ const handleSaveStudent = () => {
       )
     : [];
 
-
+  const getStudentCount = (groupId) => {
+      return students.filter(student => student.group && student.group._id === groupId).length;
+    };
+    
   return (
     <div className="modal-overlay">
       <div className="modal-content modal-content-list">
@@ -272,63 +244,79 @@ const handleSaveStudent = () => {
           </button>
         </div>
 
-       {activeTab === "groups" && (
-  <div>
-    <h3>Groups</h3>
-    {groups.length === 0 ? (
-      <p>No groups available</p>
-    ) : (
-      <div className="student-list">
-      <table>
-        <thead>
-          <tr>
-            <th>Group Name</th>
-            <th>Action</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {groups.map((group) => (
-            <tr key={group._id}>
-              <td>{group.name}</td>
-              <td>
-                <button
-                  className="delstudent"
-                  onClick={() => handleEditGroupName(group)}
-                >
-                  <FiEdit size={18} color="green" />
+        {activeTab === "groups" && (
+          <div>
+            <h3>Groups</h3>
+            {groups.length === 0 ? (
+              <p>No groups available</p>
+            ) : (
+              <div className="student-list">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Group Name</th>
+                      <th>Total Contact</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groups.map((group) => (
+                      <tr key={group._id}>
+                        <td>{group.name}</td>
+                        <td>{getStudentCount(group._id)}</td>
+                        <td>
+                          <button
+                            className={`editstudent ${
+                              activeTab === "students" ? "active" : ""
+                            }`}
+                            onClick={() => setActiveTab("students")}
+                          >
+                            {" "}
+                            <FiEye size={18} color="#282a74" />
+                          </button>
+                          <button
+                            className="editstudent"
+                            onClick={() => handleEditGroupName(group)}
+                          >
+                            <FiEdit size={18} color="green" />
+                          </button>
+                          <button
+                            className="editstudent"
+                            onClick={() => handleDeleteGroup(group._id)}
+                          >
+                            <FiTrash2 size={18} color="red" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {editingGroup && (
+              <div className="edit-student-modal-overlay">
+              <div className="edit-student-modal-contents">
+                <h3>Edit Group</h3>
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                />
+                <div className="edit-student-modal-buttons">
+                <button className="editbtn" onClick={handleSaveGroupName}>
+                  Save
                 </button>
                 <button
-                  className="delstudent"
-                  onClick={() => handleDeleteGroup(group._id)}
+                  className="cancelbtn"
+                  onClick={() => setEditingGroup(null)}
                 >
-                  <FiTrash2 size={18} color="red" />
+                  Cancel
                 </button>
-              </td>
-              <td><button
-                     className={`view-btn btn ${activeTab === "students" ? "active" : ""}`}
-                     onClick={() => setActiveTab("students")}
-                >View
-                </button></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-    )}
- 
-              {editingGroup && (
-          <div className="edit-modal">
-            <h3>Edit Group</h3>
-            <input
-              type="text"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-            />
-            <button className="editbtn" onClick={handleSaveGroupName}>Save</button>
-            <button className="cancelbtn" onClick={() => setEditingGroup(null)}>Cancel</button>
-          </div>
-        )}
+              </div>
+              </div>
+            </div>
+            )}
           </div>
         )}
 
@@ -349,250 +337,167 @@ const handleSaveStudent = () => {
                 ))}
               </select>
             </div>
-          {filteredStudents.length === 0 ? (
+            {filteredStudents.length === 0 ? (
               <p>No Contacts available</p>
             ) : (
               <>
                 <button className="btn" onClick={handleDeleteSelectedStudents}>
                   Delete Selected Contacts
                 </button>
-                 <button className="btn-ref" onClick={handleRefresh}>
-                   <FiRefreshCw/>  Refresh
+                <button className="btn-ref" onClick={handleRefresh}>
+                  <FiRefreshCw /> Refresh
                 </button>
                 <div className="student-list">
-            <table>
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      onChange={(e) =>
-                        setSelectedStudents(
-                          e.target.checked
-                            ? filteredStudents.map((s) => s._id)
-                            : []
-                        )
-                      }
-                    />
-                  </th>
-                  <th>Fname</th>
-                  <th>Lname</th>
-                  <th>Email</th>
-                  <th>EMIamount</th>
-                  <th>Balance</th>
-                  <th>Totalfees</th>
-                  <th>Coursename</th>
-                  <th>Coursetype</th>
-                  <th>Offer</th>
-                  <th>Number</th>
-                  <th>Date</th>
-                  <th>Group</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.map((student) => (
-                  <tr key={student._id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student._id)}
-                        onChange={(e) =>
-                          setSelectedStudents((prev) =>
-                            e.target.checked
-                              ? [...prev, student._id]
-                              : prev.filter((id) => id !== student._id)
-                          )
-                        }
-                      />
-                    </td>
-                    <td>{student.Fname || "Nil"}</td>
-                    <td>{student.Lname || "Nil"}</td>
-                    <td>{student.Email || "Nil"}</td>
-                    <td>{student.EMIamount || "Nil"}</td>
-                    <td>{student.Balance || "Nil"}</td>
-                    <td>{student.Totalfees || "Nil"}</td>
-                    <td>{student.Coursename || "Nil"}</td>
-                    <td>{student.Coursetype || "Nil"}</td>
-                    <td>{student.Offer || "Nil"}</td>
-                    <td>{student.Number || "Nil"}</td>
-                    <td>{student.Date || "Nil"}</td>
-
-                    <td>{student.group?.name || "No group"}</td>
-                    <td>
-                      <button className="editstudent"
-                        onClick={() => handleEditStudent(student)}>
-                  <FiEdit size={18} color="green"/>
-                      </button>
-                       <button className="delstudent"
-                        onClick={handleDeleteSelectedStudents}
-                      >
-                              <FiTrash2 size={18} color="red"/>
-                      </button>
-                       
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-              </div>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>
+                          <input
+                            type="checkbox"
+                            onChange={(e) =>
+                              setSelectedStudents(
+                                e.target.checked
+                                  ? filteredStudents.map((s) => s._id)
+                                  : []
+                              )
+                            }
+                          />
+                        </th>
+                        {/* Dynamically extract headers from student data (excluding '_id' and 'group') */}
+                        {students.length > 0 &&
+                          Object.keys(students[0])
+                            .filter(
+                              (key) =>
+                                key !== "_id" &&
+                                key !== "group" &&
+                                key !== "__v"
+                            )
+                            .map((key, index) => <th key={index}>{key}</th>)}
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.map((student) => (
+                        <tr key={student._id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedStudents.includes(student._id)}
+                              onChange={(e) =>
+                                setSelectedStudents((prev) =>
+                                  e.target.checked
+                                    ? [...prev, student._id]
+                                    : prev.filter((id) => id !== student._id)
+                                )
+                              }
+                            />
+                          </td>
+                          {Object.keys(student)
+                            .filter(
+                              (key) =>
+                                key !== "_id" &&
+                                key !== "group" &&
+                                key !== "__v"
+                            )
+                            .map((key, index) => (
+                              <td key={index}>{student[key]}</td>
+                            ))}
+                          <td>
+                            <button
+                              className="editstudent"
+                              onClick={() => handleEditStudent(student)}
+                            >
+                              <FiEdit size={18} color="green" />
+                            </button>
+                            <button
+                              className="editstudent"
+                              onClick={handleDeleteSelectedStudents}
+                            >
+                              <FiTrash2 size={18} color="red" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </>
             )}
+            {editingStudent && (
+              <div className="edit-student-modal-overlay">
+                <div className="edit-student-modal-content">
+                  <h3>Edit Student</h3>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSaveStudent();
+                    }}
+                  >
+                    {/* Render input fields dynamically (excluding `_id`) */}
+                    {Object.keys(editFormData).map(
+                      (key) =>
+                        key !== "group" && (
+                          <input
+                            key={key}
+                            type="text"
+                            name={key}
+                            value={editFormData[key] || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                [key]: e.target.value,
+                              })
+                            }
+                            placeholder={`Enter ${key}`}
+                            className="edit-student-input"
+                          />
+                        )
+                    )}
 
-                 {editingStudent && (
-          <div className="edit-modal">
-            <h3>Edit Student</h3>
-          <form
-  onSubmit={(e) => {
-    e.preventDefault();
-    handleSaveStudent(); // Save the student when the form is submitted
-  }}
->
-  <input
-    type="text"
-    name="Fname"
-    value={editFormData.Fname}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Fname: e.target.value })
-    }
-    placeholder="Enter Fname"
-  />
-   <input
-    type="text"
-    name="Lname"
-    value={editFormData.Lname}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Lname: e.target.value })
-    }
-    placeholder="Enter Lname"
-  />
-  
-  <input
-    type="email"
-    name="Email"
-    value={editFormData.Email}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Email: e.target.value })
-    }
-    placeholder="Enter Email"
-  />
-   <input
-    type="text"
-    name="EMIamount"
-    value={editFormData.EMIamount}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, EMIamount: e.target.value })
-    }
-    placeholder="Enter EMIamount"
-  />
-   <input
-    type="text"
-    name="Balance"
-    value={editFormData.Balance}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Balance: e.target.value })
-    }
-    placeholder="Enter Balance"
-  />
-   <input
-    type="text"
-    name="Totalfees"
-    value={editFormData.Totalfees}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Totalfees: e.target.value })
-    }
-    placeholder="Enter Totalfees"
-  />
-   <input
-    type="text"
-    name="Coursename"
-    value={editFormData.Coursename}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Coursename: e.target.value })
-    }
-    placeholder="Enter Coursename"
-  />
-  <input
-    type="text"
-    name="Coursetype"
-    value={editFormData.Coursetype}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData,Coursetype: e.target.value })
-    }
-    placeholder="Enter Coursetype"
-  />
-  <input
-    type="text"
-    name="Offer"
-    value={editFormData.Offer}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Offer: e.target.value })
-    }
-    placeholder="Enter offer"
-  />
-  <input
-    type="text"
-    name="Number"
-    value={editFormData.Number}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Number: e.target.value })
-    }
-    placeholder="Enter Number"
-  />
-  <input
-    type="text"
-    name="Date"
-    value={editFormData.Date}
-    onChange={(e) =>
-      setEditFormData({ ...editFormData, Date: e.target.value })
-    }
-    placeholder="Enter Date"
-  />
+                    {/* Group Dropdown */}
+                    <select
+                      name="group"
+                      value={editFormData.group || ""}
+                      onChange={(e) => {
+                        const selectedGroup = groups.find(
+                          (group) => group._id === e.target.value
+                        );
+                        setEditFormData({
+                          ...editFormData,
+                          group: selectedGroup?._id || "",
+                        });
+                      }}
+                      className="edit-student-select"
+                    >
+                      <option value="">Select Group</option>
+                      {groups.map((group) => (
+                        <option key={group._id} value={group._id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
 
-
-  {/* Group Dropdown */}
-  <select
-    name="group"
-    value={editFormData.group?._id || ""}
-    onChange={(e) => {
-      const selectedGroup = groups.find(
-        (group) => group._id === e.target.value
-      );
-      setEditFormData({ ...editFormData, group: selectedGroup || null });
-    }}
-  >
-    <option value="">Select Group</option>
-    {groups.map((group) => (
-      <option key={group._id} value={group._id}>
-        {group.name}
-      </option>
-    ))}
-  </select>
-
-  {/* Save Button */}
-  <button className="editbtn" type="submit">
-    Save
-  </button>
-
-  {/* Cancel Button */}
-  <button
-    className="cancelbtn"
-    type="button"
-    onClick={() => setEditingStudent(null)} // Close the edit form
-  >
-    Cancel
-  </button>
-</form>
-
+                    {/* Buttons */}
+                    <div className="edit-student-modal-buttons">
+                      <button className="edit-student-save-btn" type="submit">
+                        Save
+                      </button>
+                      <button
+                        className="edit-student-cancel-btn"
+                        type="button"
+                        onClick={() => setEditingStudent(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-      
-          </div>
-        )}
-
-  
-          {/* Confirmation Modal */}
+        {/* Confirmation Modal */}
         <ConfirmationModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -600,29 +505,27 @@ const handleSaveStudent = () => {
           message="Are you sure you want to delete this group?"
         />
 
-        
         {/* deleting modal */}
         {showDeletingToast && (
-   <div className="deleting-toast">
-    Deleting selected contacts, please wait...
-   </div>
-)}
- {/* editing modal */}
+          <div className="deleting-toast">
+            Deleting selected contacts, please wait...
+          </div>
+        )}
+        {/* editing modal */}
         {showEditingToast && (
-   <div className="deleting-toast">
-       Updated please wait...
-   </div>
-)}
-<ToastContainer className="custom-toast"
-  position="bottom-center"
-      autoClose= {2000} 
-      hideProgressBar={true} // Disable progress bar
-      closeOnClick= {false}
-      closeButton={false}
-      pauseOnHover= {true}
-      draggable= {true}
-      theme= "light" // Optional: Choose theme ('light', 'dark', 'colored')
-/>
+          <div className="deleting-toast">Updated please wait...</div>
+        )}
+        <ToastContainer
+          className="custom-toast"
+          position="bottom-center"
+          autoClose={2000}
+          hideProgressBar={true} // Disable progress bar
+          closeOnClick={false}
+          closeButton={false}
+          pauseOnHover={true}
+          draggable={true}
+          theme="light" // Optional: Choose theme ('light', 'dark', 'colored')
+        />
       </div>
     </div>
   );

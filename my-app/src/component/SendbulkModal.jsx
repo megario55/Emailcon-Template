@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useCallback } from "react";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -10,11 +10,12 @@ const SendbulkModal = ({ isOpen, onClose, previewContent = [],bgColor}) => {
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [message, setMessage] = useState("");
+  const [emailData, setEmailData] = useState({ attachments: []}); // Email data object
   const [isProcessing, setIsProcessing] = useState(false);
     const [isProcessingsch, setIsProcessingsch] = useState(false);
-
   const [isScheduled, setIsScheduled] = useState(false); // Toggle state
   const [previewtext, setPreviewtext] = useState("");
+  const [aliasName, setAliasName] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const user = JSON.parse(localStorage.getItem("user"));
   const campaign = JSON.parse(localStorage.getItem("campaign"));
@@ -28,24 +29,29 @@ const SendbulkModal = ({ isOpen, onClose, previewContent = [],bgColor}) => {
     }
   }, [isOpen, previewContent]);
 
-  // Fetch groups on modal open
-  useEffect(() => {
-    if (isOpen) {
-      axios
-        .get(`${apiConfig.baseURL}/api/stud/groups/${user.id}`)
-        .then((response) => setGroups(response.data))
-        .catch((error) => {
-          console.error("Error fetching groups:", error);
-          toast.error("Failed to fetch groups.");
-        });
+ 
+const fetchGroups = useCallback(async () => {
+  try {
+    const response = await axios.get(`${apiConfig.baseURL}/api/stud/groups/${user.id}`);
+    setGroups(response.data);
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+    if (!toast.isActive("fetchError")) {
+      toast.error("Failed to fetch groups.", { toastId: "fetchError" });
     }
-  }, [isOpen,user]);
+  }
+}, [user.id]); // Only re-create when `user.id` changes
 
+useEffect(() => {
+  if (isOpen) {
+    fetchGroups();
+  }
+}, [isOpen, fetchGroups]);
   
 const sendscheduleBulk = async () => {
 
-   if (!selectedGroup || !message || !previewtext) {
-    toast.warning("Please select a group and enter a message and preview text.");
+   if (!selectedGroup || !message || !previewtext || !aliasName) {
+    toast.warning("Please select a group and enter a aliasName, message and preview text.");
     return;
   }
 
@@ -73,6 +79,27 @@ const sendscheduleBulk = async () => {
       setIsProcessingsch(false);
       return;
     }
+     let attachments = [];
+        if (emailData.attachments && emailData.attachments.length > 0) {
+          const formData = new FormData();
+          
+          emailData.attachments.forEach((file) => {
+            formData.append("attachments", file);
+          });
+        
+          const uploadResponse = await axios.post(
+            `${apiConfig.baseURL}/api/stud/uploadfile`,
+            formData,
+            { headers: { "Content-Type": "multipart/form-data" } }
+          );
+        
+          console.log("Uploaded Files:", uploadResponse.data);    
+          // Structure the uploaded files with original name and URL
+            attachments = uploadResponse.data.fileUrls.map((file, index) => ({
+            originalName: emailData.attachments[index].name, // Get original file name
+            fileUrl: file // Cloudinary URL
+          }));
+        }
     
         // Store initial campaign history with "Pending" status
         const campaignHistoryData = {
@@ -85,6 +112,8 @@ const sendscheduleBulk = async () => {
             failedEmails:0,
             sentEmails:0,
             subject:message,
+            aliasName,
+            attachments,
             exceldata:[{}],
             previewtext,
             previewContent,bgColor,
@@ -92,13 +121,14 @@ const sendscheduleBulk = async () => {
             status: "Scheduled On",
             senddate: new Date().toLocaleString(),
             user: user.id,
+            progress:0,
             groupId:selectedGroup,
         };
 
         const campaignResponse = await axios.post(`${apiConfig.baseURL}/api/stud/camhistory`, campaignHistoryData);
         console.log("Initial Campaign History Saved:", campaignResponse.data);
         toast.success("Email scheduled successfully!");
-        navigate("/home");
+        navigate("/campaigntable");
         sessionStorage.removeItem("firstVisit");
         sessionStorage.removeItem("toggled");
       }
@@ -112,8 +142,8 @@ const sendscheduleBulk = async () => {
   }
 
 const handleSend = async () => {
-  if (!selectedGroup || !message || !previewtext) {
-    toast.warning("Please select a group and enter a message and preview text.");
+  if (!selectedGroup || !message || !previewtext || !aliasName) {
+    toast.warning("Please select a group and enter a aliasName,message and preview text.");
     return;
   }
 
@@ -122,14 +152,33 @@ const handleSend = async () => {
     return;
   }
        setIsProcessing(true);
-           navigate("/home");
+           navigate("/campaigntable");
            sessionStorage.removeItem("firstVisit");
            sessionStorage.removeItem("toggled");
 
-
-
     let sentEmails = [];
     let failedEmails = [];
+     let attachments = [];
+        if (emailData.attachments && emailData.attachments.length > 0) {
+          const formData = new FormData();
+          
+          emailData.attachments.forEach((file) => {
+            formData.append("attachments", file);
+          });
+        
+          const uploadResponse = await axios.post(
+            `${apiConfig.baseURL}/api/stud/uploadfile`,
+            formData,
+            { headers: { "Content-Type": "multipart/form-data" } }
+          );
+        
+          console.log("Uploaded Files:", uploadResponse.data);    
+          // Structure the uploaded files with original name and URL
+            attachments = uploadResponse.data.fileUrls.map((file, index) => ({
+            originalName: emailData.attachments[index].name, // Get original file name
+            fileUrl: file // Cloudinary URL
+          }));
+        }
 
   try {
     // Fetch students from the selected group
@@ -155,11 +204,13 @@ const handleSend = async () => {
             failedEmails:0,
             sentEmails:0,
             subject:message,
+            attachments,
             exceldata:[{}],
-            previewtext,
+            previewtext,aliasName,
             previewContent,bgColor,
             scheduledTime:new Date(),
             status: "Pending",
+            progress:0,
             senddate: new Date().toLocaleString(),
             user: user.id,
             groupId:selectedGroup,
@@ -171,8 +222,10 @@ const handleSend = async () => {
 
 
   
-    for (const student of students) {
-      const personalizedContent = previewContent.map((item) => {
+        for (let i = 0; i < students.length; i++) {
+          const student = students[i]; // Get the current student
+
+        const personalizedContent = previewContent.map((item) => {
         const personalizedItem = { ...item };
 
         if (item.content) {
@@ -190,7 +243,8 @@ const handleSend = async () => {
         subject: message,
         body: JSON.stringify(personalizedContent),
         bgColor,
-        previewtext,
+        attachments,
+        previewtext,aliasName,
         userId: user.id,
         groupId: selectedGroup,
       };
@@ -203,6 +257,24 @@ const handleSend = async () => {
         console.error(`Failed to send email to ${student.Email}:`, error);
         failedEmails.push(student.Email);
       }
+          // **Update progress dynamically**
+    const totalEmails = students.length;
+    const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+    const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+    const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+
+    // **Update the database after each email is processed**
+    await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`, {
+        sendcount: sentEmails.length,
+        failedcount: failedEmails.length,
+        sentEmails,
+        failedEmails,
+        status: "In Progress",
+        progress: currentProgress, // Updated progress calculation
+    });
+
+    console.log(`Progress updated: ${currentProgress}%`);
+      
     }
 
       // Update campaign history with final status
@@ -214,11 +286,9 @@ const handleSend = async () => {
             failedcount: failedEmails.length > 0 ? failedEmails.length : 0, // Ensure failedcount is 0, not an empty array
             status: finalStatus,
         });
-    toast.success("Emails sent successfully!");
-  
+        console.log("Emails sent successfully");
   } catch (error) {
     console.error("Error sending emails:", error);
-    toast.error("Failed to send emails.");
     setIsProcessing(false);
   }
 };
@@ -247,6 +317,13 @@ const handleSend = async () => {
               </option>
             ))}
           </select>
+          <label htmlFor="subject-input">Alias Name:</label>
+          <textarea
+            id="aliasName-input"
+            value={aliasName}
+            onChange={(e) => setAliasName(e.target.value)}
+            placeholder="Enter your alias name here"
+          />
 
           <label htmlFor="subject-input">Subject:</label>
           <textarea
@@ -263,6 +340,49 @@ const handleSend = async () => {
             onChange={(e) => setPreviewtext(e.target.value)}
             placeholder="Enter your Preview text here"
           />
+           {/* Attachment File Input */}
+                <label htmlFor="attachments">Attach Files(Max-10):</label>
+                  {/* Attachment File Input */}
+                  <input
+                  type="file"
+                  multiple
+                  onChange={(e) => {
+                    const newFiles = Array.from(e.target.files);
+                    const allFiles = [...(emailData.attachments || []), ...newFiles];
+          
+                    if (allFiles.length > 10) {
+                      toast.warning("You can only attach up to 10 files.");
+                      return;
+                    }
+          
+                    setEmailData({ ...emailData, attachments: allFiles });
+                  }}
+                />
+          
+                {/* Display Attached Files */}
+                <div className="file-list">
+                  {emailData.attachments && emailData.attachments.length > 0 ? (
+                    <ol>
+                      {emailData.attachments.map((file, index) => (
+                        <li key={index}>
+                          {file.name} - {Math.round(file.size / 1024)} KB
+                          <button className="attach-close"
+                            onClick={() => {
+                              const newAttachments = emailData.attachments.filter(
+                                (_, i) => i !== index
+                              );
+                              setEmailData({ ...emailData, attachments: newAttachments });
+                            }}
+                          >
+                            X
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p>No files selected</p>
+                  )}
+                </div>
 
           {/* Toggle Button for Scheduled Mail */}
           <div className="toggle-container">

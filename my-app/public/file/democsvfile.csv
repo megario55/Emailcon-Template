@@ -1,4 +1,4 @@
-Fname,Lname,Email,EMIamount,Balance,Totalfees,Coursename,Coursetype,Offer,Number,Date,College
-Megarajan,Ravikumar,megarajan55@gmail.com,10000,20000,50000,Fullstack,Micro,3000,3,2025-01-10,kiot
-Renuga,Jagadeesan,renugajagadeesan@gmail.com,5000,25000,55000,Datascience,Nano,2000,5,2025-01-15,dgct
-suresh,kumar,megarajan050598@gmail.com,10000,20000,50000,Fullstack,Micro,0,3,2025-01-10,sona
+Fname,Lname,Email,College
+sam,Thomas,demo1@gmail.com,kiot
+William,Roger,demo2@gmail.com,Ksr
+Jack,Smith,demo3@gmail.com,sona

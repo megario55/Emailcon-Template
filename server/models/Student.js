@@ -1,17 +1,17 @@
 import mongoose from "mongoose";
 
 const studentSchema = new mongoose.Schema({
-    Fname: String,
-    Lname: String,
-    Email: String,
-    EMIamount: Number,
-    Balance: Number,
-    Totalfees: Number,
-    Coursename: String,
-    Coursetype: String,
-    Offer: String,
-    Number: String,
-    Date: String,
+    Fname: {
+        type: String,
+
+    },
+    Lname: {
+        type: String,
+
+    },
+    Email: {
+        type: String,
+    },
     // Allow additional dynamic fields
     additionalFields: {
         type: Map,
@@ -22,7 +22,7 @@ const studentSchema = new mongoose.Schema({
          ref: "Group",
      },
      
-},{ strict: false });
+},{ strict: false,versionKey: false });
 
 const Student= mongoose.model('Student', studentSchema);
 

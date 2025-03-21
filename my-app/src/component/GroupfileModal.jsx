@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import sampleexcels from '../Images/excelsheet.png';
+import { FaInfoCircle } from "react-icons/fa";
 import apiConfig from "../apiconfig/apiConfig.js";
 
 const GroupfileModal = ({ onClose }) => {
@@ -13,6 +14,8 @@ const GroupfileModal = ({ onClose }) => {
   const [selectedGroupForUpload, setSelectedGroupForUpload] = useState(null);
   const [groups, setGroups] = useState([]);
   const [fileName, setFileName] = useState('');
+    const [isRuleOpen,setIsRuleOpen]=useState("");
+  
   const user = JSON.parse(localStorage.getItem("user"));
     const navigate = useNavigate();
 
@@ -40,7 +43,6 @@ const handleFileUpload = (event) => {
     const file = event.target.files[0];
     setFileName(file.name);
     const reader = new FileReader();
-
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
@@ -48,18 +50,25 @@ const handleFileUpload = (event) => {
       const sheet = workbook.Sheets[sheetName];
 
       const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-      const formattedData = jsonData.map((row, rowIndex) => row.map((cell, colIndex) => {
-        if (colIndex === 10 && typeof cell === 'number') {
-          const jsDate = new Date(Math.round((cell - 25569) * 86400 * 1000));
-          return jsDate.toISOString().split('T')[0];
-        }
-        return cell;
-      })).filter(row => row.some(cell => cell));
+      let headers = jsonData[0]; // Extract headers from first row
+      const formattedData = jsonData
+        .map((row, rowIndex) =>
+          row.map((cell, colIndex) => {
+            if (rowIndex > 0) { // Avoid modifying headers
+              const header = headers[colIndex]?.toLowerCase(); // Normalize headers
+              if (header.includes("date") && typeof cell === "number") {
+                const jsDate = new Date(Math.round((cell - 25569) * 86400 * 1000));
+                return jsDate.toISOString().split("T")[0]; // Convert only if column is a date
+              }
+            }
+            return cell;
+          })
+        )
+        .filter((row) => row.some((cell) => cell));
 
       setUploadedData(formattedData);
       console.log(formattedData);
     };
-
     reader.readAsArrayBuffer(file);
   };
 
@@ -81,8 +90,12 @@ const handleFileUpload = (event) => {
           toast.success("Uploaded data saved successfully");
           setUploadedData([]); // Clear data after saving
           setFileName(''); // Clear file name
+          setTimeout(() => {
+            onClose();
+          }, 3000);
+
           if (fileInputRef.current) {
-            fileInputRef.current.value = ''; // Reset file input
+            fileInputRef.current.value = ''; 
           }
         })
         .catch((error) => {
@@ -112,11 +125,62 @@ const handleFileUpload = (event) => {
               ))}
             </select>
             <div className="excel-modal-body">
-              <h4>Sample excel format</h4>
-              <img src={sampleexcels} alt="Sample Excel Format" className="sample-excel-image" />
-               <a href="../file/demoexcelfile.xlsx" download>
-             <button className="modal-btn btn-download-sample">Download Sample File</button></a>
-              <h4>Upload excel file</h4>
+             <h4>Sample excel format 
+                          <FaInfoCircle
+                                              className="info-icon-rule"
+                             onClick={() => {
+                                console.log("Info icon clicked!");
+                                setIsRuleOpen(true);
+                              }}
+                                              style={{ cursor: "pointer", marginLeft: "5px" }}
+                              />
+                          </h4>
+                          <img
+                            src={sampleexcels}
+                            alt="Sample Excel Format"
+                            className="sample-excel-image"
+                          />
+                          <div style={{ display: "flex", gap: "10px" }}>
+                            <a href="/file/democsvfile.csv" download>
+                              <button className="modal-btn btn-download-sample">
+                                Download Sample csv File
+                              </button>
+                            </a>
+                            <a href="/file/demoexcelfile.xlsx" download>
+                              <button className="modal-btn btn-download-sample">
+                                Download Sample xlsx File
+                              </button>
+                              
+                            </a>
+                            
+                          </div>
+            
+             {/* Modal */}
+             {isRuleOpen && (
+                    <div className="rule-modal-overlay">
+                      <div className="rule-modal-container">
+                      <h3>Steps to Upload a File</h3>
+            <ol>
+              <li>The First Name, Last Name, and Email fields are mandatory.</li>
+              <li>All other fields are optional. You can create custom fields based on your requirements.</li>
+            </ol>
+            
+                        <button onClick={() => setIsRuleOpen(false)} className="rule-close-button">
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                          <h4>Upload excel file
+                             <FaInfoCircle
+                                            className="info-icon-rule"
+                                             onClick={() => {
+                                                console.log("Info icon clicked!");
+                                                setIsRuleOpen(true);
+                                              }}
+                                     style={{ cursor: "pointer", marginLeft: "5px" }}
+                                              />
+                          </h4>
               <input type="file" accept=".xlsx, .xls"
                ref={fileInputRef} // Attach the reference to the file input
                onChange={handleFileUpload} />
@@ -151,7 +215,7 @@ const handleFileUpload = (event) => {
       closeButton={false}
       pauseOnHover= {true}
       draggable= {true}
-      theme= "dark" // Optional: Choose theme ('light', 'dark', 'colored')
+      theme= "light" // Optional: Choose theme ('light', 'dark', 'colored')
 />
     </div>
   );

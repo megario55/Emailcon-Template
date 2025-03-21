@@ -12,7 +12,7 @@ function CampaignTable() {
   const [campaigns, setCampaigns] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [failedEmails, setFailedEmails] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingCampaigns, setProcessingCampaigns] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
@@ -81,7 +81,6 @@ const handleSaveTime = async () => {
       scheduledTime: updatedTimeISO,
     });
 
-    // ✅ Update the local state so that the UI reflects the change
     setCampaigns((prevCampaigns) =>
       prevCampaigns.map((c) =>
         c._id === activeCampaignId ? { ...c, scheduledTime: updatedTimeISO } : c
@@ -116,7 +115,7 @@ const handleToggle = async (e, campaignId) => {
   const handleResend = async (campaignId) => {
   try {
    
-    setIsProcessing(true);
+    setProcessingCampaigns((prev) => ({ ...prev, [campaignId]: true })); // Set only this campaign as processing
 
     // Fetch campaign details
     const response = await axios.get(`${apiConfig.baseURL}/api/stud/getcamhistory/${campaignId}`);
@@ -125,6 +124,7 @@ const handleToggle = async (e, campaignId) => {
 
     if (!campaign || !campaign.failedEmails || campaign.failedEmails.length === 0) {
       toast.warning("No failed emails to resend.");
+      setProcessingCampaigns((prev) => ({ ...prev, [campaignId]: false })); // Reset
       return;
     }
 
@@ -153,9 +153,11 @@ const handleToggle = async (e, campaignId) => {
       const emailData = {
         recipientEmail: email,
         subject: campaign.subject,
+        aliasName: campaign.aliasName,
         body: JSON.stringify(personalizedContent),
         bgColor: campaign.bgColor,
         previewtext: campaign.previewtext,
+        attachments: campaign.attachments,
         userId: campaign.user,
         groupId: campaign.groupname,
         campaignId: campaignId,
@@ -168,6 +170,23 @@ const handleToggle = async (e, campaignId) => {
           console.error(`Failed to send email to ${email}:`, error);
           failedEmails.push(email);
         }
+      // **Update progress dynamically**
+    const totalEmails = campaign.failedEmails.length;
+    const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+    const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+    const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+
+    // **Update the database after each email is processed**
+    await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`, {
+        sendcount: sentEmails.length,
+        failedcount: failedEmails.length,
+        sentEmails,
+        failedEmails,
+        status: "In Progress",
+        progress: currentProgress, // Updated progress calculation
+    });
+
+    console.log(`Progress updated: ${currentProgress}%`);
       }
 
       // Update campaign history
@@ -179,8 +198,8 @@ const handleToggle = async (e, campaignId) => {
         failedcount: failedEmails.length > 0 ? failedEmails.length : 0,
         status: finalStatus,
       });
+      console.log("Emails resent successfully!");
 
-      toast.success("Emails resent successfully!");
       return;
     }
 
@@ -222,6 +241,8 @@ const handleToggle = async (e, campaignId) => {
         body: JSON.stringify(personalizedContent),
         bgColor: campaign.bgColor,
         previewtext: campaign.previewtext,
+        aliasName: campaign.aliasName,
+        attachments: campaign.attachments,
         userId: campaign.user,
         groupId: campaign.groupname,
         campaignId: campaignId,
@@ -234,6 +255,23 @@ const handleToggle = async (e, campaignId) => {
           console.error(`Failed to send email to ${email}:`, error);
           failedEmails.push(email);
         }
+           // **Update progress dynamically**
+    const totalEmails = campaign.failedEmails.length;
+    const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+    const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+    const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+
+    // **Update the database after each email is processed**
+    await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`, {
+        sendcount: sentEmails.length,
+        failedcount: failedEmails.length,
+        sentEmails,
+        failedEmails,
+        status: "In Progress",
+        progress: currentProgress, // Updated progress calculation
+    });
+
+    console.log(`Progress updated: ${currentProgress}%`);
       }
 
       // Update campaign history
@@ -245,8 +283,8 @@ const handleToggle = async (e, campaignId) => {
         failedcount: failedEmails.length > 0 ? failedEmails.length : 0,
         status: finalStatus,
       });
+      console.log("Emails resent successfully!");
 
-      toast.success("Emails resent successfully!");
       return;
     }
 
@@ -288,6 +326,8 @@ const handleToggle = async (e, campaignId) => {
         body: JSON.stringify(personalizedContent),
         bgColor: campaign.bgColor,
         previewtext: campaign.previewtext,
+        attachments: campaign.attachments,
+        aliasName: campaign.aliasName,
         userId: campaign.user,
         groupId: campaign.groupname,
         campaignId: campaignId,
@@ -300,6 +340,23 @@ const handleToggle = async (e, campaignId) => {
         console.error(`Failed to send email to ${email}:`, error);
         failedEmails.push(email);
       }
+         // **Update progress dynamically**
+    const totalEmails = campaign.failedEmails.length;
+    const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+    const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+    const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+
+    // **Update the database after each email is processed**
+    await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`, {
+        sendcount: sentEmails.length,
+        failedcount: failedEmails.length,
+        sentEmails,
+        failedEmails,
+        status: "In Progress",
+        progress: currentProgress, // Updated progress calculation
+    });
+
+    console.log(`Progress updated: ${currentProgress}%`);
     }
 
     // Update campaign history
@@ -311,13 +368,12 @@ const handleToggle = async (e, campaignId) => {
       failedcount: failedEmails.length > 0 ? failedEmails.length : 0,
       status: finalStatus,
     });
+    console.log("Emails resent successfully!");
 
-    toast.success("Emails resent successfully!");
   } catch (error) {
     console.error("Error resending emails:", error);
-    toast.error("Failed to resend emails.");
   } finally {
-    setIsProcessing(false);
+    setProcessingCampaigns((prev) => ({ ...prev, [campaignId]: false })); // Reset processing state
   }
 };
  const filteredCampaigns = campaigns.filter((campaign) =>
@@ -483,17 +539,19 @@ const handleToggle = async (e, campaignId) => {
                         </label>
                       </>
                     ) : (
-                      campaign.status // Display status alone for Success/Failed
+                      `${campaign.status}-${campaign.progress}% `// Display status alone for Success/Failed
                     )}
 
                     {campaign.status === "Failed" && (
                       <button
                         className="resend-btn"
                         onClick={() => handleResend(campaign._id)}
-                        disabled={isProcessing}
+                        disabled={processingCampaigns[campaign._id]} // Disable only for processing campaign
                         style={{ marginLeft: "10px" }}
                       >
-                        {isProcessing ? "Processing..." : "Resend"}
+                     {processingCampaigns[campaign._id]
+                          ? "Resending..."
+                          : "Resend"}
                       </button>
                     )}
                   </td>

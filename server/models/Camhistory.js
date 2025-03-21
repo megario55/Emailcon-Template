@@ -13,6 +13,14 @@ const camhistorySchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    progress: {
+        type: String,
+        required: true,
+    },
+    aliasName: {
+        type: String,
+        required: true,
+    },
     sendcount: {
         type: String,
         required: true,
@@ -46,6 +54,12 @@ const camhistorySchema = new mongoose.Schema({
         type: Array,
         required: true,
     },
+    attachments: [
+        {
+          originalName: { type: String},
+          fileUrl: { type: String},
+        }
+      ],
     bgColor: {
         type: String,
     },
@@ -63,22 +77,22 @@ const camhistorySchema = new mongoose.Schema({
         type: String,
     },
     exceldata: [{
-        Fname: String,
-        Lname: String,
-        Email: String,
-        EMIamount: Number,
-        Balance: Number,
-        Totalfees: Number,
-        Coursename: String,
-        Coursetype: String,
-        Offer: String,
-        Number: String,
-        Date: String,
+        Fname: {
+            type: String,
+        },
+        Lname: {
+            type: String,
+        },
+        Email: {
+            type: String,
+        },
         additionalFields: {
             type: Map,
             of: String,
         },
     }],
+},{
+    strict: false
 }, {
     timestamps: true, // Automatically stores createdAt and updatedAt
 });

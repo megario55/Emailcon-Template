@@ -69,7 +69,7 @@ function Signup() {
           <h2 className="signup-header">
             Sign<span style={{ color: "#f48c06" }}>up</span>
           </h2>
-          <div className="dropdown-container">
+          <div>
             <div className="label">
               <label>Select Mail Service</label>
             </div>

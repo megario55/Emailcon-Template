@@ -4,6 +4,7 @@ import axios from "axios";
 import "./GroupModal.css";
 import * as XLSX from "xlsx";
 import { ToastContainer, toast } from "react-toastify";
+import { FaInfoCircle } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 import sampleexcels from "../Images/excelsheet.png";
 import apiConfig from "../apiconfig/apiConfig.js";
@@ -14,6 +15,9 @@ const GroupModalnew = ({ onClose }) => {
   const [selectedGroupForUpload, setSelectedGroupForUpload] = useState(null);
   const [groups, setGroups] = useState([]);
   const [fileName, setFileName] = useState("");
+  const [isFirstModal, setIsFirstModal] = useState(true);
+  const [isSecondModalOpen, setIsSecondModalOpen] = useState(false);
+  const [isRuleOpen,setIsRuleOpen]=useState("");
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
 
@@ -53,6 +57,8 @@ const GroupModalnew = ({ onClose }) => {
           setGroups([...groups, response.data]);
           setSelectedGroupForUpload(response.data._id);
           toast.success("Group created");
+          setIsFirstModal(false);
+          setIsSecondModalOpen(true);
           setGroupName("");
         })
         .catch((error) => {
@@ -77,14 +83,16 @@ const GroupModalnew = ({ onClose }) => {
       const sheet = workbook.Sheets[sheetName];
 
       const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      let headers = jsonData[0]; // Extract headers from first row
       const formattedData = jsonData
         .map((row, rowIndex) =>
           row.map((cell, colIndex) => {
-            if (colIndex === 10 && typeof cell === "number") {
-              const jsDate = new Date(
-                Math.round((cell - 25569) * 86400 * 1000)
-              );
-              return jsDate.toISOString().split("T")[0];
+            if (rowIndex > 0) { // Avoid modifying headers
+              const header = headers[colIndex]?.toLowerCase(); // Normalize headers
+              if (header.includes("date") && typeof cell === "number") {
+                const jsDate = new Date(Math.round((cell - 25569) * 86400 * 1000));
+                return jsDate.toISOString().split("T")[0]; // Convert only if column is a date
+              }
             }
             return cell;
           })
@@ -113,9 +121,14 @@ const GroupModalnew = ({ onClose }) => {
       axios
         .post(`${apiConfig.baseURL}/api/stud/students/upload`, payload)
         .then(() => {
+          setTimeout(() => {
+            setIsFirstModal(false);
+            setIsSecondModalOpen(false);
+          }, 3000);
           toast.success("Uploaded data saved successfully");
           setUploadedData([]); // Clear data after saving
           setFileName(""); // Clear file name
+         
           if (fileInputRef.current) {
             fileInputRef.current.value = ""; // Reset file input
           }
@@ -130,29 +143,39 @@ const GroupModalnew = ({ onClose }) => {
   };
 
   return (
+    <>
+    {isFirstModal && (
+         <div className="group-modal-overlay">
+              <div className="group-modal-content">
+    <h2 className="modal-title">Create New Group</h2>
+    <label className="modal-label">Group Name</label>
+    <input
+      type="text"
+      value={groupName}
+      onChange={(e) => setGroupName(e.target.value)}
+      className="modal-input modal-group-name-input"
+    />
+    <button
+      className="modal-btn btn-create-group"
+      onClick={handleGroupCreate}
+    >
+      Create
+    </button>
+    <button onClick={() => setIsFirstModal(false)}
+                  className="modal-btn btn-create-group"
+                >
+                  Cancel
+                </button>
+                </div>
+  </div>)}
+
+  {isSecondModalOpen &&(
     <div className="modal-overlay">
       <div className="modal-group">
         <button className="modal-close-btn" onClick={onClose}>
           &times;
         </button>
         <div className="modal-content">
-          <div className="group-creation-section">
-            <h2 className="modal-title">Create New Group</h2>
-            <label className="modal-label">Group Name</label>
-            <input
-              type="text"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              className="modal-input modal-group-name-input"
-            />
-            <button
-              className="modal-btn btn-create-group"
-              onClick={handleGroupCreate}
-            >
-              Create
-            </button>
-          </div>
-
           <div className="excel-uploader">
             <h3 className="modal-section-title">Add Contact</h3>
             <select
@@ -170,7 +193,16 @@ const GroupModalnew = ({ onClose }) => {
               ))}
             </select>
             <div className="excel-modal-body">
-              <h4>Sample excel format</h4>
+              <h4>Sample excel format 
+                 <FaInfoCircle
+                                  className="info-icon-rule"
+                 onClick={() => {
+                    console.log("Info icon clicked!");
+                    setIsRuleOpen(true);
+                  }}
+                                  style={{ cursor: "pointer", marginLeft: "5px" }}
+                  />
+              </h4>
               <img
                 src={sampleexcels}
                 alt="Sample Excel Format"
@@ -186,9 +218,37 @@ const GroupModalnew = ({ onClose }) => {
                   <button className="modal-btn btn-download-sample">
                     Download Sample xlsx File
                   </button>
+                  
                 </a>
+                
               </div>
-              <h4>Upload excel file</h4>
+
+ {/* Modal */}
+ {isRuleOpen && (
+        <div className="rule-modal-overlay">
+          <div className="rule-modal-container">
+          <h3>Steps to Upload a File</h3>
+<ol>
+  <li>The First Name, Last Name, and Email fields are mandatory.</li>
+  <li>All other fields are optional. You can create custom fields based on your requirements.</li>
+</ol>
+
+            <button onClick={() => setIsRuleOpen(false)} className="rule-close-button">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+              <h4>Upload excel file
+              <FaInfoCircle
+                                  className="info-icon-rule"
+                 onClick={() => {
+                    console.log("Info icon clicked!");
+                    setIsRuleOpen(true);
+                  }}
+                                  style={{ cursor: "pointer", marginLeft: "5px" }}
+                  />
+              </h4>
               <input
                 type="file"
                 accept=".xlsx, .xls .csv"
@@ -249,9 +309,10 @@ const GroupModalnew = ({ onClose }) => {
         closeButton={false}
         pauseOnHover={true}
         draggable={true}
-        theme="dark" // Optional: Choose theme ('light', 'dark', 'colored')
+        theme="light" // Optional: Choose theme ('light', 'dark', 'colored')
       />
     </div>
-  );
+  )}
+    </> );
 };
 export default GroupModalnew;

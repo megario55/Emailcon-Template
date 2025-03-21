@@ -27,7 +27,7 @@ cron.schedule('* * * * *', async () => {
         let sentEmails = [];
         let failedEmails = [];
 
-        for (const camhistory of camhistories) {
+        for(const camhistory of camhistories){
             console.log(`Processing scheduled email for user: ${camhistory.user}`);
             const groupId = camhistory.groupId?.trim(); // Trim to avoid spaces affecting checks
 
@@ -47,9 +47,11 @@ cron.schedule('* * * * *', async () => {
                     const emailData = {
                         recipientEmail: email,
                         subject: camhistory.subject,
+                        aliasName: camhistory.aliasName,
                         body: JSON.stringify(personalizedContent),
                         bgColor: camhistory.bgColor,
                         previewtext: camhistory.previewtext,
+                        attachments: camhistory.attachments,   
                         userId: camhistory.user,
                         groupId: camhistory.groupname,
                         campaignId: camhistory._id,
@@ -62,6 +64,23 @@ cron.schedule('* * * * *', async () => {
                         console.error(`Failed to send email to ${email}:`, error);
                         failedEmails.push(email);
                     }
+                       // **Update progress dynamically**
+                        const totalEmails = recipients.length;
+                        const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+                        const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+                        const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+                    
+                        // **Update the database after each email is processed**
+                        await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${camhistory._id}`, {
+                            sendcount: sentEmails.length,
+                            failedcount: failedEmails.length,
+                            sentEmails,
+                            failedEmails,
+                            status: "In Progress",
+                            progress: currentProgress, // Updated progress calculation
+                        });
+                    
+                        console.log(`Progress updated: ${currentProgress}%`);
                 }
 
                 // Update status
@@ -84,7 +103,8 @@ cron.schedule('* * * * *', async () => {
 
                 await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${camhistory._id}`, { status: "Pending" });
 
-                for (const student of camhistory.exceldata) {
+                for (let i = 0; i < camhistory.exceldata.length; i++) {
+                    const student = camhistory.exceldata[i];                    
                     const personalizedContent = camhistory.previewContent.map((item) => {
                         if (!item.content) return item;
                         let updatedContent = item.content;
@@ -106,6 +126,8 @@ cron.schedule('* * * * *', async () => {
                         body: JSON.stringify(personalizedContent),
                         bgColor: camhistory.bgColor,
                         previewtext: camhistory.previewtext,
+                        aliasName: camhistory.aliasName,
+                        attachments: camhistory.attachments,
                         userId: camhistory.user,
                         groupId: camhistory.groupname,
                         campaignId: camhistory._id,
@@ -118,6 +140,24 @@ cron.schedule('* * * * *', async () => {
                         console.error(`Failed to send email to ${student.Email}:`, error);
                         failedEmails.push(student.Email);
                     }
+                     // **Update progress dynamically**
+                     const totalEmails = camhistory.exceldata.length;
+                     const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+                     const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+                     const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+                 
+                     // **Update the database after each email is processed**
+                     await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${camhistory._id}`, {
+                         sendcount: sentEmails.length,
+                         failedcount: failedEmails.length,
+                         sentEmails,
+                         failedEmails,
+                         status: "In Progress",
+                         progress: currentProgress, // Updated progress calculation
+                     });
+                 
+                     console.log(`Progress updated: ${currentProgress}%`);
+                    
                 }
 
                 const finalStatus = failedEmails.length > 0 ? "Failed" : "Success";
@@ -162,6 +202,8 @@ cron.schedule('* * * * *', async () => {
                         body: JSON.stringify(personalizedContent),
                         bgColor: camhistory.bgColor,
                         previewtext: camhistory.previewtext,
+                        aliasName: camhistory.aliasName,
+                        attachments: camhistory.attachments,
                         userId: camhistory.user,
                         groupId: camhistory.groupname,
                         campaignId: camhistory._id,
@@ -174,6 +216,23 @@ cron.schedule('* * * * *', async () => {
                         console.error(`Failed to send email to ${student.Email}:`, error);
                         failedEmails.push(student.Email);
                     }
+                     // **Update progress dynamically**
+                     const totalEmails = students.length;
+                     const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+                     const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+                     const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+                 
+                     // **Update the database after each email is processed**
+                     await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${camhistory._id}`, {
+                         sendcount: sentEmails.length,
+                         failedcount: failedEmails.length,
+                         sentEmails,
+                         failedEmails,
+                         status: "In Progress",
+                         progress: currentProgress, // Updated progress calculation
+                     });
+                 
+                     console.log(`Progress updated: ${currentProgress}%`);
                 }
 
                 const finalStatus = failedEmails.length > 0 ? "Failed" : "Success";

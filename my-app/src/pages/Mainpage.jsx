@@ -11,7 +11,7 @@ import {
   FaImage,
   FaHeading,
   FaPlusSquare,
-  FaGlobe,
+  FaGlobe,FaIdCard,FaFileImage,
   FaVideo,
 } from "react-icons/fa";
 import { FaUser, FaUsers, FaRocket } from "react-icons/fa"; // Import icons
@@ -21,22 +21,18 @@ import { MdPhoneAndroid } from "react-icons/md";
 import { MdAddPhotoAlternate } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import ParaEditor from "../component/ParaEditor.jsx";
-// import { FaUndo, FaRedo } from "react-icons/fa";
 import SendexcelModal from "../component/Importexcel.jsx";
 import SendbulkModal from "../component/SendbulkModal.jsx";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import apiConfig from "../apiconfig/apiConfig.js";
-// import facebook from "../Images/facebook.png";
-// import twitter from "../Images/twitter.png";
-// import instagram from "../Images/instagram.png";
-// import youtube from "../Images/youtube.png"
 import Lookingimg from "../Images/hand-drawn-step-illustration.png"
 
 const Mainpage = () => {
   const [isLoading, setIsLoading] = useState(false); // State for loader
   const [isLoadingsch, setIsLoadingsch] = useState(false); // State for loader
   const [bgColor, setBgColor] = useState("#ffffff");
+  const [bgColorpre, setBgColorpre] = useState("#ffffff");
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [isMobileView, setIsMobileView] = useState(false);
@@ -46,6 +42,8 @@ const Mainpage = () => {
     subject: "",
     previewtext: "",
     scheduledTime: "",
+    aliasName: "",
+    attachments: [],
   });
   const [selectedIndex, setSelectedIndex] = useState(null); // Track selected content index
   const [modalIndex, setModalIndex] = useState(null);
@@ -57,6 +55,7 @@ const Mainpage = () => {
   const [isScheduled, setIsScheduled] = useState(false); // Toggle state
   const [showSendModal, setShowSendModal] = useState(false); // State for opening SendbulkModal
   const [previewContent, setPreviewContent] = useState([]);
+  const [previewContentpre, setPreviewContentpre] = useState([]);
   const user = JSON.parse(localStorage.getItem("user"));
   const campaign = JSON.parse(localStorage.getItem("campaign"));
   const navigate = useNavigate();
@@ -70,7 +69,63 @@ const [isModalOpenstyle, setIsModalOpenstyle] = useState(false);
 const [isOpentemplate, setIsOpentemplate] = useState(false); // Manage dropdown visibility
 const [templates, setTemplates] = useState([]); // Store fetched templates
 const [selectedTemplate, setSelectedTemplate] = useState(null);
+const [selectedTemplatepre, setSelectedTemplatepre] = useState(null);
+const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+const [groups, setGroups] = useState([]); // Stores group names
+const [students, setStudents] = useState([]); // Stores all students
+const [selectedGroup, setSelectedGroup] = useState({});
+const [fieldNames, setFieldNames] = useState({});
 
+useEffect(() => {
+  if (!user?.id) return;
+
+  const fetchGroupsAndStudents = async () => {
+    try {
+      const groupsResponse = await axios.get(`${apiConfig.baseURL}/api/stud/groups/${user.id}`);
+      setGroups(groupsResponse.data);
+
+      const studentsResponse = await axios.get(`${apiConfig.baseURL}/api/stud/students`);
+      setStudents(studentsResponse.data);
+    } catch (err) {
+      console.log("Error fetching data:", err);
+    }
+  };
+
+  fetchGroupsAndStudents();
+}, [user.id]); 
+
+const handleGroupChange = (e, index) => {
+  const groupName = e.target.value;
+  setSelectedGroup((prev) => ({
+    ...prev,
+    [index]: groupName, // Track group for this specific heading
+  }));
+
+  if (!students || students.length === 0) {
+    console.log("No students available yet.");
+    return;
+  }
+
+  console.log(`All students:`, students);
+  console.log(`Selected Group for Heading ${index}:`, groupName);
+
+  const filteredStudents = students.filter(
+    (student) => student.group && student.group._id === groupName
+  );
+
+  const sampleStudent = filteredStudents.length > 0 ? filteredStudents[0] : null;
+
+  const newFieldNames = sampleStudent
+    ? Object.keys(sampleStudent).filter(
+        (key) => key !== "_id" && key !== "group" && key !== "__v"
+      )
+    : [];
+
+  setFieldNames((prev) => ({
+    ...prev,
+    [index]: newFieldNames, // Store fields per heading
+  }));
+};
 
 // Fetch options from the database when the component mounts
 
@@ -103,8 +158,22 @@ useEffect(() => {
   window.addEventListener("resize", handleResize);
   return () => window.removeEventListener("resize", handleResize);
 }, []);
-
+const handlePreview=(template)=>{
+  setIsOpentemplate(false); // Close the dropdown
+  setIsNavOpen(false);
+  setIsPreviewOpen(true);
+  setSelectedTemplatepre(template);
+  setBgColorpre(template.bgColor || "#ffffff"); // Update background color
+  setPreviewContentpre(template.previewContent || []); // Update previewContent
+}
+const handlecancel=()=>{
+  setIsPreviewOpen(false);
+  setShowTemplateModal(false);
+  setIsNavOpen(false);
+}
 const handleTemplateSelect = (template) => {
+  setIsPreviewOpen(false);
+  setIsNavOpen(false);
   setIsOpentemplate(false); // Close the dropdown
   setSelectedTemplate(template);
   setBgColor(template.bgColor || "#ffffff"); // Update background color
@@ -137,6 +206,49 @@ const handleTemplateSelect = (template) => {
       },
     ]);
   };
+  const addMultipleImage = () => {
+    //  const isMobile = window.innerWidth <= 600; // Check if screen width is 600px or less
+  
+     setPreviewContent([
+       ...previewContent,
+       {
+         type: "multipleimage",
+         src1: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjCoUtOal33JWLqals1Wq7p6GGCnr3o-lwpQ&s",
+         src2: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjCoUtOal33JWLqals1Wq7p6GGCnr3o-lwpQ&s",
+         style: {
+          width: "100%",
+          height: "auto",
+          borderRadius: "10px",
+          textAlign: "center",
+        },
+        },
+       
+     ]);
+   };
+
+   const addCardImage = () => {
+    setPreviewContent([
+      ...previewContent,
+      {
+        type: "cardimage",
+         style:{
+             width: "80%",
+              height: "auto",
+              margin: "0px auto",
+              
+         },
+        src1: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjCoUtOal33JWLqals1Wq7p6GGCnr3o-lwpQ&s", // Default image source
+        content1:
+          "Artificial intelligence is transforming the way we interact with technology, enabling machines to process data with efficiency.", // Default paragraph text
+        style1: {
+          color: "black",
+          backgroundColor: "#f4f4f4",         
+        },
+      },
+    ]);
+  };
+
+  
   const addHeading = () => {
     saveToUndoStack(); // Save the current state before deleting
 
@@ -558,100 +670,118 @@ const handleTemplateSelect = (template) => {
     toast.error("Please ensure all fields are filled and user is valid");
   }
 };
+const sendscheduleEmail = async () => {
+  if (!previewContent || previewContent.length === 0) {
+    toast.warning("No preview content available.");
+    return;
+  }
+  if (!emailData || !emailData.recipient || !emailData.subject || !emailData.previewtext || !emailData.aliasName || !emailData.scheduledTime) {
+    toast.warning("Please fill in all required fields.");
+    return;
+  }
+  setIsLoadingsch(true);
 
-  //Schedule send Email
-  const sendscheduleEmail = async () => {
-    // Validate required fields
-    if (!previewContent || previewContent.length === 0) {
-      toast.warning("No preview content available.");
-      return;
-    }
-    if (
-      !emailData ||
-      !emailData.recipient ||
-      !emailData.subject ||
-      !emailData.previewtext ||
-      !emailData.scheduledTime
-    ) {
-      toast.warning("Please fill in all required fields.");
-      return;
-    }
-    setIsLoadingsch(true);
-
-    try {
-      let recipients = emailData.recipient
-        .split(",")
-        .map((email) => email.trim());
-
-      // Store campaign history with "scheduled" status in UTC format
-      const campaignHistoryData = {
-        campaignname: campaign.camname,
-        groupname: "No Group",
-        totalcount: recipients.length,
-        recipients: emailData.recipient,
-        sendcount: 0,
-        failedcount: 0,
-        sendEmails: 0,
-        failedEmails: 0,
-        subject: emailData.subject,
-        previewtext: emailData.previewtext,
-        previewContent,
-        bgColor,
-        exceldata: [{}],
-        status: "Scheduled On",
-        scheduledTime: new Date(emailData.scheduledTime).toISOString(),
-        senddate: new Date().toLocaleString(),
-        user: user.id,
-        groupId: "no group",
-      };
-
-      const campaignResponse = await axios.post(
-        `${apiConfig.baseURL}/api/stud/camhistory`,
-        campaignHistoryData
+  try {
+    let recipients = emailData.recipient.split(",").map((email) => email.trim());
+    let attachments = [];
+    if (emailData.attachments && emailData.attachments.length > 0) {
+      const formData = new FormData();
+      
+      emailData.attachments.forEach((file) => {
+        formData.append("attachments", file);
+      });
+    
+      const uploadResponse = await axios.post(
+        `${apiConfig.baseURL}/api/stud/uploadfile`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
-
-      console.log("Initial Campaign History Saved:", campaignResponse.data);
-      localStorage.setItem("camhistory", JSON.stringify(campaignResponse.data));
-      toast.success("Email scheduled successfully!");
-      navigate("/home");
-      sessionStorage.removeItem("firstVisit");
-      sessionStorage.removeItem("toggled");
-    } catch (error) {
-      console.error("Error scheduling email:", error);
-      toast.error("Failed to schedule email.");
-    } finally {
-      setIsLoadingsch(false);
+    
+      console.log("Uploaded Files:", uploadResponse.data);    
+      // Structure the uploaded files with original name and URL
+        attachments = uploadResponse.data.fileUrls.map((file, index) => ({
+        originalName: emailData.attachments[index].name, // Get original file name
+        fileUrl: file // Cloudinary URL
+      }));
     }
-  };
+    // Store campaign history with uploaded file data
+    const campaignHistoryData = {
+      campaignname: campaign.camname,
+      groupname: "No Group",
+      totalcount: recipients.length,
+      recipients: emailData.recipient,
+      sendcount: 0,
+      failedcount: 0,
+      sendEmails: 0,
+      failedEmails: 0,
+      subject: emailData.subject,
+      previewtext: emailData.previewtext,
+      aliasName: emailData.aliasName,
+      attachments, // Store objects with originalName & fileUrl
+      previewContent,
+      bgColor,
+      exceldata: [{}],
+      status: "Scheduled On",
+      progress: 0,
+      scheduledTime: new Date(emailData.scheduledTime).toISOString(),
+      senddate: new Date().toLocaleString(),
+      user: user.id,
+      groupId: "no group",
+    };
+
+    await axios.post(`${apiConfig.baseURL}/api/stud/camhistory`, campaignHistoryData);
+
+    toast.success("Email scheduled successfully!");
+    navigate("/campaigntable");
+  } catch (error) {
+    console.error("Error scheduling email:", error);
+    toast.error("Failed to schedule email.");
+  } finally {
+    setIsLoadingsch(false);
+  }
+};
 
   //Normal Send Email
   const sendEmail = async () => {
-    // Validate required fields
     if (!previewContent || previewContent.length === 0) {
       toast.warning("No preview content available.");
       return;
     }
-    if (
-      !emailData ||
-      !emailData.recipient ||
-      !emailData.subject ||
-      !emailData.previewtext
-    ) {
+    if (!emailData || !emailData.recipient || !emailData.subject || !emailData.previewtext || !emailData.aliasName) {
       toast.warning("Please fill in all required fields.");
       return;
     }
+  
     setIsLoading(true);
-    navigate("/home");
+    navigate("/campaigntable");
     sessionStorage.removeItem("firstVisit");
     sessionStorage.removeItem("toggled");
-
+  
     try {
-      let recipients = emailData.recipient
-        .split(",")
-        .map((email) => email.trim());
+      let recipients = emailData.recipient.split(",").map((email) => email.trim());
       let sentEmails = [];
       let failedEmails = [];
-
+      let attachments = [];
+      if (emailData.attachments && emailData.attachments.length > 0) {
+        const formData = new FormData();
+        
+        emailData.attachments.forEach((file) => {
+          formData.append("attachments", file);
+        });
+      
+        const uploadResponse = await axios.post(
+          `${apiConfig.baseURL}/api/stud/uploadfile`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+      
+        console.log("Uploaded Files:", uploadResponse.data);    
+        // Structure the uploaded files with original name and URL
+         attachments = uploadResponse.data.fileUrls.map((file, index) => ({
+          originalName: emailData.attachments[index].name, // Get original file name
+          fileUrl: file // Cloudinary URL
+        }));
+      }
       // Store initial campaign history with "Pending" status
       const campaignHistoryData = {
         campaignname: campaign.camname,
@@ -664,7 +794,9 @@ const handleTemplateSelect = (template) => {
         failedEmails: 0,
         subject: emailData.subject,
         previewtext: emailData.previewtext,
+        aliasName: emailData.aliasName,
         previewContent,
+        attachments,
         bgColor,
         exceldata: [{}],
         scheduledTime: new Date(),
@@ -672,67 +804,74 @@ const handleTemplateSelect = (template) => {
         senddate: new Date().toLocaleString(),
         user: user.id,
         groupId: "no group",
+        progress: 0, // Track progress in DB
       };
-
-      const campaignResponse = await axios.post(
-        `${apiConfig.baseURL}/api/stud/camhistory`,
-        campaignHistoryData
-      );
-      const campaignId = campaignResponse.data.id; // Assume response includes campaign ID
+  
+      const campaignResponse = await axios.post(`${apiConfig.baseURL}/api/stud/camhistory`, campaignHistoryData);
+      const campaignId = campaignResponse.data.id;
       console.log("Initial Campaign History Saved:", campaignResponse.data);
-
-      // Start sending emails
-      await Promise.all(
-        recipients.map(async (email) => {
-          try {
-            const response = await axios.post(
-              `${apiConfig.baseURL}/api/stud/sendtestmail`,
-              {
-                emailData: {
-                  ...emailData,
-                  recipient: email,
-                },
-                previewContent,
-                bgColor,
-                userId: user.id,
-              }
-            );
-
-            if (response.status === 200) {
-              sentEmails.push(email);
-            } else {
-              console.error(`Failed to send email to ${email}:`, response);
-              failedEmails.push(email);
-            }
-          } catch (err) {
-            console.error(`Error sending email to ${email}:`, err);
+  
+      // Start sending emails with DB progress updates
+      for (let i = 0; i < recipients.length; i++) {
+        let email = recipients[i];
+  
+        try {
+          const response = await axios.post(`${apiConfig.baseURL}/api/stud/sendtestmail`, {
+            emailData: { ...emailData, recipient: email },
+            previewContent,
+            bgColor,
+            attachments,
+            userId: user.id,
+          });
+  
+          if (response.status === 200) {
+            sentEmails.push(email);
+          } else {
+            console.error(`Failed to send email to ${email}:`, response);
             failedEmails.push(email);
           }
-        })
-      );
-
-      // Update campaign history with final status
-      const finalStatus = failedEmails.length > 0 ? "Failed" : "Success";
-      await axios.put(
-        `${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`,
-        {
-          sendcount: sentEmails.length,
-          sentEmails: sentEmails,
-          failedEmails: failedEmails.length > 0 ? failedEmails : 0,
-          failedcount: failedEmails.length > 0 ? failedEmails.length : 0, // Ensure failedcount is 0, not an empty array
-          status: finalStatus,
+        } catch (err) {
+          console.error(`Error sending email to ${email}:`, err);
+          failedEmails.push(email);
         }
-      );
-      console.log("status updated:", finalStatus);
-      toast.success("Email sending process completed.");
+  
+        // Update progress dynamically
+        const totalEmails = recipients.length;
+        const successProgress = Math.round((sentEmails.length / totalEmails) * 100);
+        const failProgress = Math.round((failedEmails.length / totalEmails) * 100);
+        const currentProgress = failedEmails.length > 0 ? failProgress : successProgress;
+  
+        // Update the database after each email is processed
+        await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`, {
+          sendcount: sentEmails.length,
+          failedcount: failedEmails.length,
+          sentEmails,
+          failedEmails,
+          status: "In Progress",
+          progress: currentProgress, // Updated progress calculation
+        });
+  
+        console.log(`Progress updated: ${currentProgress}%`);
+      }
+  
+      // Final DB update after sending all emails
+      const finalStatus = failedEmails.length > 0 ? "Failed" : "Success";
+      await axios.put(`${apiConfig.baseURL}/api/stud/camhistory/${campaignId}`, {
+        sendcount: sentEmails.length,
+        failedcount: failedEmails.length,
+        sentEmails,
+        failedEmails,
+        status: finalStatus,
+      });
+  
+      console.log("Emails sent successfully");
     } catch (error) {
       console.error("Error in sendEmail:", error);
-      toast.error("An error occurred while sending the email.");
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   //add variable
   const handleInsertName = (index, name) => {
     const updatedPreviewContent = [...previewContent];
@@ -741,6 +880,7 @@ const handleTemplateSelect = (template) => {
     updatedPreviewContent[index].content += name;
 
     setPreviewContent(updatedPreviewContent);
+    setSelectedGroup(false);
   };
 
   const handleCursorPosition = (e, index) => {
@@ -780,6 +920,10 @@ const handleTemplateSelect = (template) => {
     else if (type === "textwithimage") addTextImage();
     else if (type === "video-icon") addVideo();
     else if (type === "icons") addSocialMedia();
+    else if (type === "multipleimage") addMultipleImage();
+    else if (type === "cardimage") addCardImage();
+
+
 
     dragIndex.current = null; // Reset the type after drop
   };
@@ -936,7 +1080,6 @@ const handleTemplateSelect = (template) => {
               </button>
 
               {/* Template List - Shown below View button when isOpen is true */}
-              {/* Template List */}
               {isOpentemplate && (
                 <div className="template-list">
                   <p className="template-title">
@@ -948,7 +1091,7 @@ const handleTemplateSelect = (template) => {
                         <div
                           key={template._id}
                           className="template-item"
-                          onClick={() => handleTemplateSelect(template)}
+                          onClick={() => handlePreview(template)}
                         >
                           {template.temname}
                         </div>
@@ -1042,7 +1185,6 @@ const handleTemplateSelect = (template) => {
                 </button>
 
                 {/* Template List - Shown below View button when isOpen is true */}
-                {/* Template List */}
                 {isOpentemplate && (
                   <div className="template-list">
                     <p className="template-title">
@@ -1054,8 +1196,8 @@ const handleTemplateSelect = (template) => {
                           <div
                             key={template._id}
                             className="template-item"
-                            onClick={() => handleTemplateSelect(template)}
-                          >
+                            onClick={() => handlePreview(template)}
+                            >
                             {template.temname}
                           </div>
                         ))}
@@ -1149,7 +1291,23 @@ const handleTemplateSelect = (template) => {
                   draggable
                   onDragStart={(e) => handleDragStart("multi-image")}
                 >
+                  <FaImage /> Multi-Image-Button
+                </button>
+                <button
+                  onClick={addMultipleImage}
+                  className="editor-button"
+                  draggable
+                  onDragStart={(e) => handleDragStart("multipleimage")}
+                >
                   <FaImage /> Multi-Image
+                </button>
+                <button
+                  onClick={addCardImage}
+                  className="editor-button"
+                  draggable
+                  onDragStart={(e) => handleDragStart("cardimage")}
+                >
+                  <FaIdCard/> Image-Card
                 </button>
 
                 <button
@@ -1158,7 +1316,7 @@ const handleTemplateSelect = (template) => {
                   draggable
                   onDragStart={(e) => handleDragStart("textwithimage")}
                 >
-                  <FaImage /> Text-Image
+                  <FaFileImage /> Text-Image
                 </button>
                 <button
                   onClick={addImageText}
@@ -1166,12 +1324,13 @@ const handleTemplateSelect = (template) => {
                   draggable
                   onDragStart={(e) => handleDragStart("imagewithtext")}
                 >
-                  <FaImage /> Image-Text
+                  <FaFileImage /> Image-Text
                 </button>
 
                 <button
                   onClick={addVideo}
                   className="editor-button"
+                  draggable
                   onDragStart={(e) => handleDragStart("video-icon")}
                 >
                   <FaVideo />
@@ -1180,7 +1339,8 @@ const handleTemplateSelect = (template) => {
                 <button
                   onClick={addSocialMedia}
                   className="editor-button"
-                  onDragStart={(e) => handleDragStart("image")}
+                  draggable
+                  onDragStart={(e) => handleDragStart("icons")}
                 >
                   <FaGlobe />
                   Social Icons
@@ -3131,6 +3291,78 @@ const handleTemplateSelect = (template) => {
                           </>
                         )}
 
+
+{previewContent[selectedIndex].type === "cardimage" && (
+                          <>
+                            <label>Size (%):</label>
+                            <input
+                              type="range"
+                              min="70"
+                              max="100"
+                              value={parseInt(
+                                previewContent[
+                                  selectedIndex
+                                ].style.width.replace("%", "")
+                              )}
+                              onChange={(e) => {
+                                const newSize = e.target.value;
+                                updateContent(selectedIndex, {
+                                  style: {
+                                    ...previewContent[selectedIndex].style,
+                                    width: `${newSize}%`,
+                                    // height: `${newSize * 5}px`, // Adjusting height based on size percentage
+                                  },
+                                });
+                              }}
+                            />
+                            <span>
+                              {parseInt(
+                                previewContent[
+                                  selectedIndex
+                                ].style.width.replace("%", "")
+                              )}
+                              %
+                            </span>
+
+                            <div className="editor-bg">
+                              Background Color
+                              <input
+                                type="color"
+                                value={
+                                  previewContent[selectedIndex].style1
+                                    .backgroundColor || "#ffffff"
+                                }
+                                onChange={(e) =>
+                                  updateContent(selectedIndex, {
+                                    style1: {
+                                      ...previewContent[selectedIndex].style1,
+                                      backgroundColor: e.target.value,
+                                    },
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="editor-bg">
+                              Text Color
+                              <input
+                                type="color"
+                                value={
+                                  previewContent[selectedIndex].style1.color ||
+                                  "#ffffff"
+                                }
+                                onChange={(e) =>
+                                  updateContent(selectedIndex, {
+                                    style1: {
+                                      ...previewContent[selectedIndex].style1,
+                                      color: e.target.value,
+                                    },
+                                  })
+                                }
+                              />
+                            </div>
+                          </>
+                        )}
+
                         {previewContent[selectedIndex].type ===
                           "video-icon" && (
                           <>
@@ -3296,6 +3528,37 @@ const handleTemplateSelect = (template) => {
                           />
                         </>
                       )}
+                      
+
+{item.type === "multipleimage" ? (
+                        <div className="Layout-img">
+                          <div className="Layout">
+                            <img
+                              src={
+                                item.src1 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="multiple-img"
+                              title="Upload Image"
+                              style={item.style}
+                              onClick={() => uploadImage(index, 1)}
+                            />
+                          </div>
+
+                          <div className="Layout">
+                            <img
+                              src={
+                                item.src2 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="multiple-img"
+                              title="Upload Image"
+                              style={item.style}
+                              onClick={() => uploadImage(index, 2)}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
 
                       {item.type === "multi-image" ? (
                         <div className="Layout-img">
@@ -3369,48 +3632,112 @@ const handleTemplateSelect = (template) => {
                         </div>
                       ) : null}
 
-                      {item.type === "head" && (
-                        <div>
+                      
+{item.type === "cardimage" ? (
+                        <div
+                          className="card-image-container"
+                          style={item.style1}
+                        >
+                          <img
+                            src={item.src1 || "https://via.placeholder.com/200"}
+                            style={item.style}
+                            alt="Editable"
+                            className="card-image"
+                            title="Upload Image"
+                            onClick={() => uploadImage(index, 1)}
+                          />
                           <p
-                            className="border"
+                            className="card-text"
                             contentEditable
                             suppressContentEditableWarning
-                            onBlur={(e) =>
-                              updateContent(index, {
-                                content: e.target.textContent,
-                              })
-                            }
-                            onMouseUp={(e) => handleCursorPosition(e, index)}
-                            onSelect={(e) => handleCursorPosition(e, index)}
+                            onClick={() => setModalIndex(index)} // Open modal for this index
                             style={item.style}
-                          >
-                            {item.content}
-                          </p>
-                          <select
-                            onChange={(e) =>
-                              handleInsertName(index, e.target.value)
-                            }
-                            defaultValue=""
-                            className="select-variable"
-                          >
-                            <option value="" disabled>
-                              Add Variable
-                            </option>
-                            <option value="{Fname}">First Name</option>
-                            <option value="{Lname}">Last Name</option>
-                            <option value="{Email}">Email</option>
-                            <option value="{EMIamount}">EMI Amount</option>
-                            <option value="{Balance}">Balance</option>
-                            <option value="{Totalfees}">Total Fees</option>
-                            <option value="{Coursename}">Course Name</option>
-                            <option value="{Coursetype}">Course Type</option>
-                            <option value="{Offer}">Offer</option>
-                            <option value="{Number}">Number</option>
-                            <option value="{Date}">Date</option>
-                            <option value="{College}">College</option>
-                          </select>
+                            dangerouslySetInnerHTML={{
+                              __html: item.content1,
+                            }}
+                          />
+
+                          {modalIndex === index && ( // Open only for the selected index
+                            <ParaEditor
+                              isOpen={true}
+                              content={item.content1}
+                              onSave={(newContent) => {
+                                updateContent(index, { content1: newContent });
+                                setModalIndex(null); // Close modal after save
+                              }}
+                              onClose={() => setModalIndex(null)}
+                            />
+                          )}
                         </div>
-                      )}
+                      ) : null}
+
+
+
+{item.type === "head" && (
+  <div>
+    <p
+      className="border"
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={(e) =>
+        updateContent(index, {
+          content: e.target.textContent,
+        })
+      }
+      onMouseUp={(e) => handleCursorPosition(e, index)}
+      onSelect={(e) => handleCursorPosition(e, index)}
+      style={item.style}
+    >
+      {item.content}
+    </p>
+
+    {/* Local state for each heading */}
+    <div className="select-group-container">
+      {/* Select Group */}
+      <select
+        onChange={(e) => handleGroupChange(e, index)}
+        defaultValue=""
+        className="select-variable"
+      >
+        <option value="" disabled className="template-title">
+          Add Variable
+        </option>
+        <option value="" disabled>
+          Select Group
+        </option>
+        {groups.map((group, idx) => (
+          <option key={idx} value={group._id}>
+            {group.name}
+          </option>
+        ))}
+      </select>
+
+      {/* Show fields only for the selected heading */}
+      {selectedGroup[index] && (
+        <div className="dropdown-container">
+          <p className="template-title">
+            <span>Add</span> Variable
+          </p>
+          {fieldNames[index] && fieldNames[index].length > 0 ? (
+            <div>
+              {fieldNames[index].map((field, idx) => (
+                <div
+                  className="list-field"
+                  key={idx}
+                  onClick={() => handleInsertName(index, `{${field}}`)} // Correct index
+                >
+                  {field}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-variables">No Variables</p>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
                       {item.type === "link-image" && (
                         <div className="border">
@@ -3642,6 +3969,471 @@ const handleTemplateSelect = (template) => {
             </div>
           </div>
 
+
+          {/* Modal for preview Content */}
+            {/* Right Preview */}
+
+           {isPreviewOpen &&(
+              <div className="preview-modal-overlay-tem">
+              <div className="preview-modal-content">
+            <div className="preview-con item-1">
+            {selectedTemplatepre && (
+              <h3 className="temname">{selectedTemplatepre.temname} Preview</h3>
+            )}{" "}
+            {/* Now it's used */}
+            <div
+              className={`template-preview ${
+                isMobileView ? "mobile-view" : ""
+              }`}
+              style={{ backgroundColor: bgColorpre }}
+              onDrop={handleEditorDrop}
+              onDragOver={handleDragOver}
+            >
+              <div
+                className="preview-card"
+                style={{ backgroundColor: bgColorpre }}
+              >
+                {previewContentpre.map((item, index) => {
+                  if (!item || !item.type) {
+                    return null; // Skip rendering undefined or malformed items
+                  }
+                  return (
+                    <div
+                      className="content-item-preview"
+                      style={item.style}
+                    >
+                      {item.type === "para" && (
+                        <>
+                          <p
+                            className="border"
+                            contentEditable
+                            suppressContentEditableWarning
+                            onClick={() => {
+                              setSelectedIndex(index);
+                              setIsModalOpen(true); // Open the modal
+                            }}
+                            style={item.style}
+                            dangerouslySetInnerHTML={{ __html: item.content }} // Render HTML content here
+                          />
+                        </>
+                      )}
+
+                      {item.type === "multi-image" ? (
+                        <div className="Layout-img">
+                          <div className="Layout">
+                            <img
+                              src={
+                                item.src1 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="multiimg"
+                              title="Upload Image"
+                              style={item.style}
+                              onClick={() => uploadImage(index, 1)}
+                            />
+                            <a
+                              href={item.link1}
+                              target="_blank"
+                              className="button-preview"
+                              rel="noopener noreferrer"
+                              style={item.buttonStyle1}
+                            >
+                              {item.content1}
+                            </a>
+                          </div>
+
+                          <div className="Layout">
+                            <img
+                              src={
+                                item.src2 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="multiimg"
+                              title="Upload Image"
+                              style={item.style}
+                              onClick={() => uploadImage(index, 2)}
+                            />
+                            <a
+                              href={item.link2}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="button-preview"
+                              style={item.buttonStyle2}
+                            >
+                              {item.content2}
+                            </a>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {item.type === "video-icon" ? (
+                        <div className="video-icon">
+                          <img
+                            src={item.src1 || "https://via.placeholder.com/200"}
+                            alt="Editable"
+                            className="videoimg"
+                            title="Upload Thumbnail Image"
+                            style={item.style}
+                            onClick={() => uploadImage(index, 1)}
+                          />
+                          <a
+                            href={item.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <img
+                              src={item.src2}
+                              className="video-btn"
+                              alt="icon"
+                            />
+                          </a>
+                        </div>
+                      ) : null}
+
+                      
+                      
+{item.type === "cardimage" ? (
+                        <div
+                          className="card-image-container"
+                          style={item.style1}
+                        >
+                          <img
+                            src={item.src1 || "https://via.placeholder.com/200"}
+                            style={item.style}
+                            alt="Editable"
+                            className="card-image"
+                            title="Upload Image"
+                            onClick={() => uploadImage(index, 1)}
+                          />
+                          <p
+                            className="card-text"
+                            contentEditable
+                            suppressContentEditableWarning
+                            onClick={() => setModalIndex(index)} // Open modal for this index
+                            style={item.style}
+                            dangerouslySetInnerHTML={{
+                              __html: item.content1,
+                            }}
+                          />
+
+                          {modalIndex === index && ( // Open only for the selected index
+                            <ParaEditor
+                              isOpen={true}
+                              content={item.content1}
+                              onSave={(newContent) => {
+                                updateContent(index, { content1: newContent });
+                                setModalIndex(null); // Close modal after save
+                              }}
+                              onClose={() => setModalIndex(null)}
+                            />
+                          )}
+                        </div>
+                      ) : null}
+
+                      {item.type === "head" && (
+                        <div>
+                          <p
+                            className="border"
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) =>
+                              updateContent(index, {
+                                content: e.target.textContent,
+                              })
+                            }
+                            onMouseUp={(e) => handleCursorPosition(e, index)}
+                            onSelect={(e) => handleCursorPosition(e, index)}
+                            style={item.style}
+                          >
+                            {item.content}
+                          </p>
+                          
+                        </div>
+                      )}
+
+                      {item.type === "link-image" && (
+                        <div className="border">
+                          <a
+                            href={item.link || "#"}
+                            onClick={(e) => handleLinkClick(e, index)}
+                          >
+                            <img
+                              src={
+                                item.src || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="img"
+                              style={item.style}
+                            />
+                          </a>
+                        </div>
+                      )}
+                      {item.type === "image" && (
+                        <div className="border">
+                          <img
+                            src={item.src || "https://via.placeholder.com/200"}
+                            alt="Editable"
+                            className="img"
+                            style={item.style}
+                          />
+                        </div>
+                      )}
+
+                      {item.type === "icons" && (
+                        <div
+                          className="border"
+                          style={item.ContentStyle}
+                          key={index}
+                        >
+                          <div className="icon-containers">
+                            <a
+                              href={item.links1 || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => handleLinksClick2(e, item.links1)}
+                            >
+                              <img
+                                src={item.iconsrc1}
+                                alt="Facebook"
+                                className="icon"
+                                style={item.style1}
+                              />
+                            </a>
+
+                            <a
+                              href={item.links2 || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => handleLinksClick2(e, item.links2)}
+                            >
+                              <img
+                                src={item.iconsrc2}
+                                alt="Twitter"
+                                className="icon"
+                                rel="noopener noreferrer"
+                                style={item.style2}
+                              />
+                            </a>
+
+                            <a
+                              href={item.links3 || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => handleLinksClick2(e, item.links3)}
+                            >
+                              <img
+                                src={item.iconsrc3}
+                                alt="Instagram"
+                                className="icon"
+                                style={item.style3}
+                              />
+                            </a>
+
+                            <a
+                              href={item.links4 || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => handleLinksClick2(e, item.links4)}
+                            >
+                              <img
+                                src={item.iconsrc4}
+                                alt="Youtube"
+                                className="icon"
+                                style={item.style4}
+                              />
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {item.type === "imagewithtext" ? (
+                        <div className="image-text-container">
+                          <div
+                            className="image-text-wrapper"
+                            style={item.style1}
+                          >
+                            <img
+                              src={
+                                item.src1 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="image-item"
+                              title="Upload Image"
+                              onClick={() => uploadImage(index, 1)}
+                            />
+                            <p
+                              className="text-item"
+                              contentEditable
+                              suppressContentEditableWarning
+                              onClick={() => setModalIndex(index)} // Open modal for this index
+                              style={item.style}
+                              dangerouslySetInnerHTML={{
+                                __html: item.content1,
+                              }}
+                            />
+                          </div>
+                          {modalIndex === index && ( // Open only for the selected index
+                            <ParaEditor
+                              isOpen={true}
+                              content={item.content1}
+                              onSave={(newContent) => {
+                                updateContent(index, { content1: newContent });
+                                setModalIndex(null); // Close modal after save
+                              }}
+                              onClose={() => setModalIndex(null)}
+                            />
+                          )}
+                        </div>
+                      ) : null}
+                      
+
+{item.type === "multipleimage" ? (
+                        <div className="Layout-img">
+                          <div className="Layout">
+                            <img
+                              src={
+                                item.src1 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="multiple-img"
+                              title="Upload Image"
+                              style={item.style}
+                              onClick={() => uploadImage(index, 1)}
+                            />
+                            {/* <a
+                              href={item.link1}
+                              target="_blank"
+                              className="button-preview"
+                              rel="noopener noreferrer"
+                              style={item.buttonStyle1}
+                            >
+                              {item.content1}
+                            </a> */}
+                          </div>
+
+                          <div className="Layout">
+                            <img
+                              src={
+                                item.src2 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="multiple-img"
+                              title="Upload Image"
+                              style={item.style}
+                              onClick={() => uploadImage(index, 2)}
+                            />
+                            {/* <a
+                              href={item.link2}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="button-preview"
+                              style={item.buttonStyle2}
+                            >
+                              {item.content2}
+                            </a> */}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {item.type === "textwithimage" ? (
+                        <div className="image-text-container">
+                          <div
+                            className="image-text-wrapper"
+                            style={item.style}
+                          >
+                            <p
+                              className="text-item"
+                              contentEditable
+                              suppressContentEditableWarning
+                              onClick={() => setModalIndex(index)} // Open modal for this index
+                              style={item.style}
+                              dangerouslySetInnerHTML={{
+                                __html: item.content2,
+                              }}
+                            />
+                            <img
+                              src={
+                                item.src2 || "https://via.placeholder.com/200"
+                              }
+                              alt="Editable"
+                              className="image-item"
+                              title="Upload Image"
+                              onClick={() => uploadImage(index, 2)}
+                            />
+                          </div>
+                          {modalIndex === index && ( // Open only for the selected index
+                            <ParaEditor
+                              isOpen={true}
+                              content={item.content2}
+                              onSave={(newContent) => {
+                                updateContent(index, { content2: newContent });
+                                setModalIndex(null); // Close modal after save
+                              }}
+                              onClose={() => setModalIndex(null)}
+                            />
+                          )}
+                        </div>
+                      ) : null}
+
+                      {item.type === "logo" && (
+                        <div className="border">
+                          <img
+                            src={item.src || "https://via.placeholder.com/200"}
+                            alt="Editable"
+                            className="logo"
+                            style={item.style}
+                          />
+                        </div>
+                      )}
+                      {item.type === "button" && (
+                        <div className="border-btn">
+                          <a
+                            href={item.link || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={item.style}
+                            className="button-preview"
+                          >
+                            {item.content}
+                          </a>
+                        </div>
+                      )}
+                      {item.type === "link" && (
+                        <div className="border-btn">
+                          <a
+                            href={item.href || "#"}
+                            onClick={(e) => handleLinkClick(e, index)}
+                            style={item.style}
+                          >
+                            {item.content}
+                          </a>
+                        </div>
+                      )}
+                 
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <button
+                  className="preview-create-button"
+                  onClick={() => handleTemplateSelect(selectedTemplatepre)}
+                  >
+                Select
+                </button>
+                <button
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="preview-create-button"
+                >
+                  Cancel
+                </button>
+          </div>
+          </div>
+          )}
+        
+
+
           {/* Modal for Save Template */}
           {showTemplateModal && (
             <div className="campaign-modal-overlay-tem">
@@ -3666,7 +4458,7 @@ const handleTemplateSelect = (template) => {
                   )}{" "}
                 </button>
                 <button
-                  onClick={() => setShowTemplateModal(false)}
+                  onClick={handlecancel}
                   className="modal-create-button"
                 >
                   Cancel
@@ -3737,92 +4529,147 @@ const handleTemplateSelect = (template) => {
             </div>
           )}
 
-          {/* Modal */}
-          {modalOpen && (
-            <div className="modal">
-              <div className="modal-content testmail-content">
-                <h2>Send Single Mail</h2>
-                <input
-                  type="email"
-                  placeholder="Recipient Email"
-                  value={emailData.recipient}
-                  onChange={(e) =>
-                    setEmailData({ ...emailData, recipient: e.target.value })
-                  }
-                />
-                <input
-                  type="text"
-                  placeholder="Subject"
-                  value={emailData.subject}
-                  onChange={(e) =>
-                    setEmailData({ ...emailData, subject: e.target.value })
-                  }
-                />
-                <input
-                  type="text"
-                  placeholder="Preview Text"
-                  value={emailData.previewtext}
-                  onChange={(e) =>
-                    setEmailData({ ...emailData, previewtext: e.target.value })
-                  }
-                />
+        {/* Modal */}
+{modalOpen && (
+  <div className="modal">
+    <div className="modal-content testmail-content">
+      <h2>Send Single Mail</h2>
 
-                {/* Toggle Button for Scheduled Mail */}
-                <div className="toggle-container">
-                  <span>
-                    {isScheduled
-                      ? "Scheduled Mail Enabled :"
-                      : "Scheduled Mail Disabled :"}
-                  </span>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={isScheduled}
-                      onChange={() => setIsScheduled(!isScheduled)}
-                    />
-                    <span className="slider-send round"></span>
-                  </label>
-                </div>
+      <input
+        type="email"
+        placeholder="Recipient Email"
+        value={emailData.recipient}
+        onChange={(e) =>
+          setEmailData({ ...emailData, recipient: e.target.value })
+        }
+      />
+      <input
+        type="text"
+        placeholder="Alias Name"
+        value={emailData.aliasName}
+        onChange={(e) =>
+          setEmailData({ ...emailData, aliasName: e.target.value })
+        }
+      />
+      <input
+        type="text"
+        placeholder="Subject"
+        value={emailData.subject}
+        onChange={(e) =>
+          setEmailData({ ...emailData, subject: e.target.value })
+        }
+      />
+      <input
+        type="text"
+        placeholder="Preview Text"
+        value={emailData.previewtext}
+        onChange={(e) =>
+          setEmailData({ ...emailData, previewtext: e.target.value })
+        }
+      />
 
-                {/* Show scheduled time input only if the toggle is enabled */}
-                {isScheduled && (
-                  <div>
-                    <label htmlFor="schedule-time">Set Schedule Time:</label>{" "}
-                    <input
-                      type="datetime-local"
-                      value={emailData.scheduledTime}
-                      onChange={(e) =>
-                        setEmailData({
-                          ...emailData,
-                          scheduledTime: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                )}
-                <button
-                  onClick={sendEmail}
-                  className="modal-button"
-                  disabled={isLoading || isScheduled} // Disable if scheduled is enabled
+      {/* Attachment File Input */}
+      <label htmlFor="attachments">Attach Files(Max-10):</label>
+        {/* Attachment File Input */}
+        <input
+        type="file"
+        multiple
+        onChange={(e) => {
+          const newFiles = Array.from(e.target.files);
+          const allFiles = [...(emailData.attachments || []), ...newFiles];
+
+          if (allFiles.length > 10) {
+            toast.warning("You can only attach up to 10 files.");
+            return;
+          }
+
+          setEmailData({ ...emailData, attachments: allFiles });
+        }}
+      />
+
+      {/* Display Attached Files */}
+      <div className="file-list">
+        {emailData.attachments && emailData.attachments.length > 0 ? (
+          <ol>
+            {emailData.attachments.map((file, index) => (
+              <li key={index}>
+                {file.name} - {Math.round(file.size / 1024)} KB
+                <button className="attach-close"
+                  onClick={() => {
+                    const newAttachments = emailData.attachments.filter(
+                      (_, i) => i !== index
+                    );
+                    setEmailData({ ...emailData, attachments: newAttachments });
+                  }}
                 >
-                  {isLoading ? "Processing..." : "Send Now"}
+                  X
                 </button>
-                <button
-                  onClick={sendscheduleEmail}
-                  disabled={isLoadingsch || !isScheduled} // Disable if scheduled is not enabled
-                  className="modal-button"
-                >
-                  {isLoadingsch ? "Processing..." : "Scheduled"}
-                </button>
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="modal-button"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>No files selected</p>
+        )}
+      </div>
+
+
+      {/* Toggle Button for Scheduled Mail */}
+      <div className="toggle-container">
+        <span>
+          {isScheduled
+            ? "Scheduled Mail Enabled :"
+            : "Scheduled Mail Disabled :"}
+        </span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={isScheduled}
+            onChange={() => setIsScheduled(!isScheduled)}
+          />
+          <span className="slider-send round"></span>
+        </label>
+      </div>
+
+      {/* Show scheduled time input only if the toggle is enabled */}
+      {isScheduled && (
+        <div>
+          <label htmlFor="schedule-time">Set Schedule Time:</label>
+          <input
+            type="datetime-local"
+            value={emailData.scheduledTime}
+            onChange={(e) =>
+              setEmailData({
+                ...emailData,
+                scheduledTime: e.target.value,
+              })
+            }
+          />
+        </div>
+      )}
+      <button
+        onClick={sendEmail}
+        className="modal-button"
+        disabled={isLoading || isScheduled} // Disable if scheduled is enabled
+      >
+        {isLoading ? "Processing..." : "Send Now"}
+      </button>
+      <button
+        onClick={sendscheduleEmail}
+        disabled={isLoadingsch || !isScheduled} // Disable if scheduled is not enabled
+        className="modal-button"
+      >
+        {isLoadingsch ? "Processing..." : "Scheduled"}
+      </button>
+      <button
+        onClick={() => setModalOpen(false)}
+        className="modal-button"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
+
         </div>
         <ToastContainer
           className="custom-toast"
