@@ -72,6 +72,26 @@ const [groups, setGroups] = useState([]); // Stores group names
 const [students, setStudents] = useState([]); // Stores all students
 const [selectedGroup, setSelectedGroup] = useState({});
 const [fieldNames, setFieldNames] = useState({});
+const templateRef = useRef(null);
+
+const toggletemplate = (event) => {
+  event.stopPropagation(); // Prevent event from bubbling up
+  setIsOpentemplate((prev) => !prev);
+};
+
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (templateRef.current && !templateRef.current.contains(event.target)) {
+      setIsOpentemplate(false);
+    }
+  };
+
+  window.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    window.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
 useEffect(() => {
   if (!user?.id) return;
@@ -1008,8 +1028,9 @@ const sendscheduleEmail = async () => {
                 </span>{" "}
                 <span className="nav-names">Save</span>
               </button>
-              <button
-                onClick={() => setIsOpentemplate(!isOpentemplate)}
+              
+              <button  ref={templateRef}
+                onClick={(e) => toggletemplate(e)}
                 className="navbar-button-send"
               >
                 <span className="Nav-icons">
@@ -1020,7 +1041,7 @@ const sendscheduleEmail = async () => {
 
               {/* Template List - Shown below View button when isOpen is true */}
               {isOpentemplate && (
-                <div className="template-list">
+                <div className="template-list" ref={templateRef}>
                   <p className="template-title">
                     <span>Select</span> Template
                   </p>
@@ -1114,8 +1135,8 @@ const sendscheduleEmail = async () => {
                   <span className="nav-names">Save</span>
                 </button>
                 <button
-                  onClick={() => setIsOpentemplate(!isOpentemplate)}
-                  className="navbar-button-send"
+                onClick={(e) => toggletemplate(e)}
+                className="navbar-button-send"
                 >
                   <span className="Nav-icons">
                     <FaEye />
@@ -1125,7 +1146,7 @@ const sendscheduleEmail = async () => {
 
                 {/* Template List - Shown below View button when isOpen is true */}
                 {isOpentemplate && (
-                  <div className="template-list">
+                  <div className="template-list" ref={templateRef}>
                     <p className="template-title">
                       <span>Select</span> Template
                     </p>
