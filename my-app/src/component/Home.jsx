@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import {
   FaFileAlt,
   FaHistory,
@@ -38,6 +38,27 @@ const Home = () => {
 
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
+  const dropdownRef = useRef(null);
+
+  const toggleDropdown = () => {
+    setDropdownOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    if (dropdownOpen) {
+      window.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownOpen]);
 
   useEffect(() => {
     if (!user) {
@@ -141,9 +162,7 @@ const Home = () => {
     navigate("/campaigntable");
   };
 
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
-  };
+ 
 
   return (
     <>
@@ -199,7 +218,7 @@ const Home = () => {
                   </span>
                 </h4>
              
-              <div className="profile-container">
+              <div className="profile-container" ref={dropdownRef}>
                 <button onClick={toggleDropdown} className="profile-button">
                   <FaUserCircle className="profile-icon" />
                 </button>
@@ -378,3 +397,4 @@ const Home = () => {
 };
 
 export default Home;
+
