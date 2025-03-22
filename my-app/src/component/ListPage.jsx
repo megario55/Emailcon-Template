@@ -106,33 +106,38 @@ fetchGroupsAndStudents();
     }
   };
   // Delete selected students
- const handleDeleteSelectedStudents = () => {
+const handleDeleteSelectedStudents = () => {
   if (selectedStudents.length === 0) {
     toast.error("Please select contacts to delete.");
     return;
   }
-  
+
   setShowDeletingToast(true); // Show toast
+
+  // Optimistically update UI before making the request
+  const updatedStudents = students.filter(
+    (student) => !selectedStudents.includes(student._id)
+  );
+  setStudents(updatedStudents);
+  setSelectedStudents([]);
+
   axios
     .delete(`${apiConfig.baseURL}/api/stud/students`, {
       data: { studentIds: selectedStudents },
     })
     .then(() => {
-      setStudents(
-        students.filter((student) => !selectedStudents.includes(student._id))
-      );
-      setSelectedStudents([]);
-      setTimeout(() => {
-        toast.success("Selected contacts deleted!");
-      }, 500);
+      toast.success("Selected contacts deleted!");
     })
     .catch(() => {
+      // If deletion fails, revert UI changes
       toast.error("Failed to delete contacts");
+      setStudents(students); // Restore previous state
     })
     .finally(() => {
       setShowDeletingToast(false); // Hide toast
     });
 };
+
 
 
   // Edit group name
