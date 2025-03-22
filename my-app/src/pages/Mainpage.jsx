@@ -26,7 +26,6 @@ import SendbulkModal from "../component/SendbulkModal.jsx";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import apiConfig from "../apiconfig/apiConfig.js";
-import Lookingimg from "../Images/hand-drawn-step-illustration.png"
 
 const Mainpage = () => {
   const [isLoading, setIsLoading] = useState(false); // State for loader
@@ -61,8 +60,6 @@ const Mainpage = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const modalRef = useRef(null);
-const isMobile = window.matchMedia("(max-width: 768px)").matches;
-const [showMobileContent, setShowMobileContent] = useState(isMobile);
 const [isNavOpen, setIsNavOpen] = useState(false);
 const [isMobilestyle, setIsMobilestyle] = useState(window.innerWidth <= 600);
 const [isModalOpenstyle, setIsModalOpenstyle] = useState(false);
@@ -931,39 +928,8 @@ const sendscheduleEmail = async () => {
   const handleDragOver = (e) => {
     e.preventDefault(); // Allow drop by preventing default
   };
-  useEffect(() => {
-    // Check if it's the first visit and if the user has toggled
-    const firstVisit = sessionStorage.getItem("firstVisit");
-    const toggled = sessionStorage.getItem("toggled");
-
-    if (!firstVisit) {
-      setShowMobileContent(true);
-      sessionStorage.setItem("firstVisit", "true"); // Mark first visit
-    } else if (toggled) {
-      setShowMobileContent(false); // If toggled before, stay on editor page
-    } else {
-      const mobile = window.matchMedia("(max-width: 600px)").matches;
-      setShowMobileContent(mobile);
-    }
-
-    const handleResize = () => {
-      if (!sessionStorage.getItem("toggled")) {
-        const mobile = window.matchMedia("(max-width: 600px)").matches;
-        setShowMobileContent(mobile);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Toggle function that only works on mobile devices
-  const handleToggle = () => {
-    if (window.matchMedia("(max-width: 768px)").matches) {
-      setShowMobileContent(false); // Hide mobile content
-      sessionStorage.setItem("toggled", "true"); // Prevent showing mobile view again
-    }
-  };
+ 
+ 
 
 
   //  // Toggle function that only works on mobile devices
@@ -985,34 +951,7 @@ const sendscheduleEmail = async () => {
   return (
     <div>
       <div
-        className="Mobile-page"
-        style={{ display: showMobileContent ? "block" : "none" }}
-      >
-        <div className="app-container-mobile">
-          <nav className="app-navbar">
-            <p className="mobile-head">
-              Camp<span style={{ color: "#f48c06" }}>aigns</span>
-            </p>
-          </nav>
-
-          <div className="app-content">
-            <img src={Lookingimg} alt="looking" style={{ width: "300px" }} />
-            <p style={{ textAlign: "center" }}>
-              Looking for creating your own campaigns ! Experience it.
-            </p>
-          </div>
-
-          <footer className="app-footer">
-            <div className="half-circle"></div>
-            <button className="foot-button" onClick={handleToggle}>
-              +
-            </button>
-          </footer>
-        </div>
-      </div>
-      <div
         className="mobile-content"
-        style={{ display: showMobileContent ? "none" : "block" }}
       >
         <div className="desktop-nav">
           <nav className="navbar">

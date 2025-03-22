@@ -218,6 +218,11 @@ const handleSaveStudent = () => {
       )
     : [];
 
+  const handleViewcontact = (group) => {
+    setActiveTab("students");
+    setSelectedGroup(group._id);
+  };
+
   const getStudentCount = (groupId) => {
       return students.filter(student => student.group && student.group._id === groupId).length;
     };
@@ -269,7 +274,7 @@ const handleSaveStudent = () => {
                             className={`editstudent ${
                               activeTab === "students" ? "active" : ""
                             }`}
-                            onClick={() => setActiveTab("students")}
+                            onClick={() => handleViewcontact(group)}                          
                           >
                             {" "}
                             <FiEye size={18} color="#282a74" />
@@ -363,17 +368,17 @@ const handleSaveStudent = () => {
                             }
                           />
                         </th>
-                        {/* Dynamically extract headers from student data (excluding '_id' and 'group') */}
-                        {students.length > 0 &&
-                          Object.keys(students[0])
-                            .filter(
-                              (key) =>
-                                key !== "_id" &&
-                                key !== "group" &&
-                                key !== "__v"
-                            )
-                            .map((key, index) => <th key={index}>{key}</th>)}
-                        <th>Action</th>
+                         {/* Extract headers dynamically from filteredStudents to reflect the selected group */}
+    {filteredStudents.length > 0 &&
+      Object.keys(filteredStudents[0])
+        .filter(
+          (key) =>
+            key !== "_id" &&
+            key !== "group" &&
+            key !== "__v" // Exclude unwanted fields
+        )
+        .map((key, index) => <th key={index}>{key}</th>)}
+    <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -479,11 +484,11 @@ const handleSaveStudent = () => {
 
                     {/* Buttons */}
                     <div className="edit-student-modal-buttons">
-                      <button className="edit-student-save-btn" type="submit">
+                      <button className="editbtn" type="submit">
                         Save
                       </button>
                       <button
-                        className="edit-student-cancel-btn"
+                        className="cancelbtn"
                         type="button"
                         onClick={() => setEditingStudent(null)}
                       >

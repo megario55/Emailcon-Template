@@ -262,10 +262,17 @@ router.post('/sendtestmail', async (req, res) => {
       }
     }).join('');
 
+  const Attachments = attachments.map(file => ({
+      filename: file.originalName,
+      path: file.fileUrl, // Use Cloudinary URL directly
+      contentType: file.mimetype
+  }));
+
     const mailOptions = {
       from: `"${emailData.aliasName}" <${email}>`,
       to: emailData.recipient,
       subject: emailData.subject,
+      attachments: Attachments,
       html: `
         <html>
           <head>
@@ -339,25 +346,7 @@ router.post('/sendtestmail', async (req, res) => {
             <div class="main" style ="background-color:${bgColor || "white"};box-shadow:0 4px 8px rgba(0, 0, 0, 0.2);border:1px solid rgb(255, 245, 245);padding:20px;width:650px;height:auto;border-radius:10px;margin:0 auto;" >
               ${emailContent}
             </div>
-            ${attachments && attachments.length > 0 ? `
-        <div style="margin-top:20px; padding:10px; border-radius:10px; background-color:#f4f4f4;">
-    <h3 style="color:#333;">Attachments</h3>
-    <ul style="list-style:none; padding:0;">
-      ${attachments?.map(att => `
-        <li style="margin-bottom:10px;">
-        <a href="${att.fileUrl.replace('/image/upload/', '/raw/upload/') + '?fl_attachment=true'}" 
-         download="${att.originalName}"
-           style="display:inline-block; padding:8px 15px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">
-            ${att.originalName} 
-            <img src="https://img.icons8.com/ios-glyphs/20/000000/download.png" 
-             style="margin-left: 5px; vertical-align: middle;" alt="Download">
-          </a>
-        </li>
-      `).join("")}
-    </ul>
-  </div>
-  ` : ''}
-
+          
           </body>
       
         </html>
@@ -633,11 +622,18 @@ router.post('/sendexcelEmail', async (req, res) => {
   };
 
     const dynamicHtml = bodyElements.map(generateHtml).join('');
+    const Attachments = attachments.map(file => ({
+      filename: file.originalName,
+      path: file.fileUrl, // Use Cloudinary URL directly
+      contentType: file.mimetype
+  }));
+  
 
     const mailOptions = {
       from: `"${aliasName}" <${email}>`,
       to: recipientEmail,
       subject: subject,
+      attachments: Attachments,
       html: `
         <html>
           <head>
@@ -722,25 +718,6 @@ router.post('/sendexcelEmail', async (req, res) => {
               <div class="main" style="background-color:${bgColor || "white"}; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); border:1px solid rgb(255, 245, 245); padding:20px;width:650px;height:auto;border-radius:10px;margin:0 auto;">
                 ${dynamicHtml}
               </div>
-                       ${attachments && attachments.length > 0 ? `
-        <div style="margin-top:20px; padding:10px; border-radius:10px; background-color:#f4f4f4;">
-    <h3 style="color:#333;">Attachments</h3>
-    <ul style="list-style:none; padding:0;">
-      ${attachments?.map(att => `
-        <li style="margin-bottom:10px;">
-        <a href="${att.fileUrl.replace('/image/upload/', '/raw/upload/') + '?fl_attachment=true'}" 
-         download="${att.originalName}"
-           style="display:inline-block; padding:8px 15px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">
-            ${att.originalName} 
-            <img src="https://img.icons8.com/ios-glyphs/20/000000/download.png" 
-             style="margin-left: 5px; vertical-align: middle;" alt="Download">
-          </a>
-        </li>
-      `).join("")}
-    </ul>
-  </div>
-  ` : ''}
-
           </body>
         </html>
       `
@@ -1015,11 +992,17 @@ router.post('/sendbulkEmail', async (req, res) => {
   };
 
     const dynamicHtml = bodyElements.map(generateHtml).join('');
+    const Attachments = attachments.map(file => ({
+      filename: file.originalName,
+      path: file.fileUrl, // Use Cloudinary URL directly
+      contentType: file.mimetype
+  }));
 
     const mailOptions = {
       from: `"${aliasName}" <${email}>`,
       to: recipientEmail,
       subject: subject,
+      attachments: Attachments,
       html: `
         <html>
           <head>
@@ -1104,25 +1087,6 @@ router.post('/sendbulkEmail', async (req, res) => {
               <div class="main" style="background-color:${bgColor || "white"}; box-shadow:0 4px 8px rgba(0, 0, 0, 0.2); border:1px solid rgb(255, 245, 245); padding:20px;width:650px;height:auto;border-radius:10px;margin:0 auto;">
                 ${dynamicHtml}
               </div>
-            ${attachments && attachments.length > 0 ? `
-        <div style="margin-top:20px; padding:10px; border-radius:10px; background-color:#f4f4f4;">
-    <h3 style="color:#333;">Attachments</h3>
-    <ul style="list-style:none; padding:0;">
-      ${attachments?.map(att => `
-        <li style="margin-bottom:10px;">
-        <a href="${att.fileUrl.replace('/image/upload/', '/raw/upload/') + '?fl_attachment=true'}" 
-         download="${att.originalName}"
-           style="display:inline-block; padding:8px 15px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">
-            ${att.originalName} 
-            <img src="https://img.icons8.com/ios-glyphs/20/000000/download.png" 
-             style="margin-left: 5px; vertical-align: middle;" alt="Download">
-          </a>
-        </li>
-      `).join("")}
-    </ul>
-  </div>
-  ` : ''}
-
           </body>
         </html>
       `

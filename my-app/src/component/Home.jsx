@@ -106,7 +106,7 @@ const Home = () => {
       return; // Stop further execution
     }
     setIsLoading(true);
-
+  
     if (campaignName && user && user.id) {
       axios
         .post(`${apiConfig.baseURL}/api/stud/campaign`, {
@@ -114,17 +114,19 @@ const Home = () => {
           userId: user.id,
         })
         .then((response) => {
-          // console.log(response.data);
-          localStorage.setItem(
-            "campaign",
-            JSON.stringify(response.data.campaign)
-          );
+          localStorage.setItem("campaign", JSON.stringify(response.data.campaign));
           console.log("Campaign created");
-            setIsLoading(false);
-            navigate("/editor");            
-            setShowCampaignModal(false);
-            setCampaignName("");
-        
+          
+          setIsLoading(false);
+          setShowCampaignModal(false);
+          setCampaignName("");
+  
+          // Check screen width for navigation
+          if (window.innerWidth <= 768) {
+            navigate("/campaign"); // Mobile
+          } else {
+            navigate("/editor"); // PC
+          }
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -134,6 +136,7 @@ const Home = () => {
       toast.error("Please ensure all fields are filled and user is valid");
     }
   };
+  
   const handlecampaignhistory = () => {
     navigate("/campaigntable");
   };
@@ -254,12 +257,12 @@ const Home = () => {
             )}
             {view === "create-contact" && (
               <div className="card-grid">
-                <div
-                  className="cards"
-                  onClick={() => setShowNewGroupModal(true)}>
-                  <FaUserPlus className="icons contact-create-icon" />
-                  <span className="card-texts">New Group</span>
-                </div>
+              <div className="cards" onClick={() => {
+    setShowNewGroupModal(prev => !prev); // Toggle state
+}}>
+  <FaUserPlus className="icons contact-create-icon" />
+  <span className="card-texts">New Group</span>
+</div>
                 <div className="cards" onClick={handleaddfilecontacts}>
                   <FaUser className="icons contact-view-icon" />
                   <span className="card-texts">Existing Group</span>

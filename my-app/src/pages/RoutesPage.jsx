@@ -8,6 +8,7 @@ import Mainpage from "./Mainpage";
 import Home from "../component/Home";
 import CampaignTable from "../component/CampaignTable";
 import ErrorPage from "../component/ErrorPage";  // Import the error page
+import Campaign from "../component/Campaign";
 
 function RoutesPage() {
   return (
@@ -20,7 +21,7 @@ function RoutesPage() {
         <Route path="/editor" element={<Mainpage />} />
         <Route path="/home" element={<Home />} />
         <Route path="/campaigntable" element={<CampaignTable />} />
-
+        <Route path="/campaign" element={<Campaign/>} />
         {/* Wildcard route to handle all other unknown paths */}
         <Route path="*" element={<ErrorPage />} />
       </Routes>
