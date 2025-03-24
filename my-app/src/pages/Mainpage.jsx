@@ -78,6 +78,13 @@ const toggletemplate = (event) => {
   event.stopPropagation(); // Prevent event from bubbling up
   setIsOpentemplate((prev) => !prev);
 };
+const styleControlsRef = useRef(null);
+
+useEffect(() => {
+  if (selectedIndex !== null && styleControlsRef.current) {
+    styleControlsRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}, [selectedIndex]);
 
 useEffect(() => {
   const handleClickOutside = (event) => {
@@ -1332,7 +1339,7 @@ const sendscheduleEmail = async () => {
                   {isMobilestyle ? (
                     <>
                       {isModalOpenstyle && (
-                        <div className="modal-overlay-send">
+                        <div className="modal-overlay-send" >
                           <div className="modal-content-style">
                             <button
                               className="close-btn-style"
@@ -1385,6 +1392,53 @@ const sendscheduleEmail = async () => {
                                   </div>
                                 </>
                               )}
+                              {previewContent[selectedIndex].type === "multipleimage" && (
+                          <>
+                          <div style={{textAlign:"center"}}>No style control for this type</div>
+                           </>
+                              )}
+{previewContent[selectedIndex].type === "cardimage" && (
+                          <>
+                           
+                            <div className="editor-bg">
+                              Background Color
+                              <input
+                                type="color"
+                                value={
+                                  previewContent[selectedIndex].style1
+                                    .backgroundColor || "#ffffff"
+                                }
+                                onChange={(e) =>
+                                  updateContent(selectedIndex, {
+                                    style1: {
+                                      ...previewContent[selectedIndex].style1,
+                                      backgroundColor: e.target.value,
+                                    },
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="editor-bg">
+                              Text Color
+                              <input
+                                type="color"
+                                value={
+                                  previewContent[selectedIndex].style1.color ||
+                                  "#ffffff"
+                                }
+                                onChange={(e) =>
+                                  updateContent(selectedIndex, {
+                                    style1: {
+                                      ...previewContent[selectedIndex].style1,
+                                      color: e.target.value,
+                                    },
+                                  })
+                                }
+                              />
+                            </div>
+                          </>
+                        )}
+
 
                               {previewContent[selectedIndex].type ===
                                 "head" && (
@@ -2379,7 +2433,7 @@ const sendscheduleEmail = async () => {
                       )}
                     </>
                   ) : (
-                    <div className="style-controls">
+                    <div className="style-controls" ref={styleControlsRef}>
                       <h3>Style Controls</h3>
                       <div className="style-item">
                         {previewContent[selectedIndex].type === "para" && (
@@ -4494,6 +4548,7 @@ const sendscheduleEmail = async () => {
   <div className="modal">
     <div className="modal-content testmail-content">
       <h2>Send Single Mail</h2>
+      <label htmlFor="Email">Email:</label>
 
       <input
         type="email"
@@ -4503,6 +4558,8 @@ const sendscheduleEmail = async () => {
           setEmailData({ ...emailData, recipient: e.target.value })
         }
       />
+          <label htmlFor="Alias Name">Alias Name:</label>
+
       <input
         type="text"
         placeholder="Alias Name"
@@ -4511,6 +4568,7 @@ const sendscheduleEmail = async () => {
           setEmailData({ ...emailData, aliasName: e.target.value })
         }
       />
+    <label htmlFor="subject">Subject:</label>
       <input
         type="text"
         placeholder="Subject"
@@ -4519,6 +4577,7 @@ const sendscheduleEmail = async () => {
           setEmailData({ ...emailData, subject: e.target.value })
         }
       />
+      <label htmlFor="preview-text">Preview Text:</label>
       <input
         type="text"
         placeholder="Preview Text"
