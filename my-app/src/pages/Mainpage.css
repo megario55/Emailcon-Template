@@ -450,7 +450,7 @@ button[data-tooltip]:hover::after {
 
 
 
-.img {
+/* .img {
     width: 100% !important;
     height: auto !important;
     margin: 0 auto;
@@ -462,8 +462,7 @@ button[data-tooltip]:hover::after {
     height: auto !important;
     margin: 0 auto;
     text-align: center;
-}
-
+}*/
 .modal-button:disabled {
     background: #ccc;
     cursor: not-allowed;
