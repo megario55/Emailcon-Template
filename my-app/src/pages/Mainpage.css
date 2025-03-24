@@ -333,6 +333,9 @@ button[data-tooltip]:hover::after {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     z-index: 100;
 }
+.testmail-content label{
+    font-weight: 550;
+}
 
 .testmail-content input {
     width: 96% !important;
@@ -1307,6 +1310,10 @@ input:checked+.slider-send:before {
     .style-item select {
         width: 95%;
     }
+    .card-text{
+        font-size: 12px !important;
+        width: 95% !important;
+    }
 
     .modal-overlay-send {
         position: fixed;
@@ -1485,6 +1492,7 @@ input:checked+.slider-send:before {
     }
     .content-item{
         padding:3px !important;
+        width: 100% !important;
     }
 
     .delete-btn {
