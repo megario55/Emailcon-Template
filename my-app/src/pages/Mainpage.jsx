@@ -500,7 +500,7 @@ const handleTemplateSelect = (template) => {
         link: "https://www.imageconindia.com/",
         style: {
           width: "100%",
-          height: isMobile ? "200px" : "350px", // Adjust height based on screen size
+          height: isMobile ? "220px" : "350px", // Adjust height based on screen size
           borderRadius: "10px",
           textAlign: "center",
           margin: "5px auto",
@@ -4548,6 +4548,9 @@ const sendscheduleEmail = async () => {
   <div className="modal">
     <div className="modal-content testmail-content">
       <h2>Send Single Mail</h2>
+      <button className="close-btn" onClick={() => setModalOpen(false)}>
+          &times;
+        </button>
       <label htmlFor="Email">Email:</label>
 
       <input
