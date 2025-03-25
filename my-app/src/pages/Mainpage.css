@@ -1608,6 +1608,8 @@ input:checked+.slider-send:before {
 
     .navbar h3 {
         font-size: 20px;
+        width: 150px !important;
+        margin: 0;
     }
 
     .Mobile-nav {
