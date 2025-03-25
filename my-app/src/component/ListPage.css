@@ -307,7 +307,7 @@ select {
 
     h2 {
         font-size: 1.5rem;
-         color:#282a74;
+         color:#282a74 !important;
     }
 
     .student-list {
