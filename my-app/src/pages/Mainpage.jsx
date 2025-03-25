@@ -500,7 +500,7 @@ const handleTemplateSelect = (template) => {
         link: "https://www.imageconindia.com/",
         style: {
           width: "100%",
-          height: isMobile ? "220px" : "350px", // Adjust height based on screen size
+          height: isMobile ? "230px" : "350px", // Adjust height based on screen size
           borderRadius: "10px",
           textAlign: "center",
           margin: "5px auto",
