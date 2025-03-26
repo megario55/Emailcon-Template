@@ -29,10 +29,7 @@
 .groupbtn {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
-
-
-
+    margin-top: 10px
 }
 
 .groupbtn div {
@@ -140,6 +137,9 @@ h3 {
     margin-top: 0;
     color: #333;
 }
+ h2 {
+         color:#2f327d !important;
+    }
 
 /* Student List */
 .student-list {
