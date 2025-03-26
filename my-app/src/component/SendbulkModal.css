@@ -64,6 +64,16 @@
     gap: 10px;
 }
 
+.modal-create-button-cancel-bulk {
+    background: #f48c06;
+    color: white;
+   border: none;
+   padding: 8px;
+   border-radius: 4px;
+   font-size: 15px;
+   cursor: pointer;
+}
+
 .send-modal-submit-btn {
     background-color: #2f327d;
     color: #fff;
