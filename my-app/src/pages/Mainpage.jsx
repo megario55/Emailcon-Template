@@ -4684,7 +4684,7 @@ const sendscheduleEmail = async () => {
       </button>
       <button
         onClick={() => setModalOpen(false)}
-        className="modal-button"
+        className="modal-create-button-cancel"
       >
         Cancel
       </button>
