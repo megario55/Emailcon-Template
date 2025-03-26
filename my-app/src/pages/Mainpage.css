@@ -194,6 +194,21 @@ button[data-tooltip]:hover::after {
     transition: 0.3s;
     position: relative;
 }
+.modal-create-button-cancel {
+    background: #f48c06;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-right: 10px;
+    margin-top: 10px;
+}
+
+.modal-create-button-cancel:hover {
+    background-color: #f48c06;
+}
 
 .navbar-button-Desktop {
     background-color: #ebeced;
