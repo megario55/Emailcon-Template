@@ -427,6 +427,12 @@ const handleSend = async () => {
             >
               {isProcessingsch ? "Processing..." : "Scheduled"}
             </button>
+            <button
+              onClick={onClose}
+              className="modal-create-button-cancel-bulk "
+            >
+              Cancel
+            </button>
           </div>
         </div>
       </div>
