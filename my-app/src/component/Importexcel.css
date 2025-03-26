@@ -104,7 +104,15 @@
     cursor: pointer;
     margin: 15px auto;
 }
-
+.modal-create-button-cancel-Instant{
+    background: #f48c06;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 15px;
+    cursor: pointer;
+}
 .btn-download-sample:hover {
     background-color: #272a70;
 }
