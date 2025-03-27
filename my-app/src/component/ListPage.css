@@ -112,6 +112,15 @@
     border-radius: 4px;
     margin: 5px;
 }
+.btn-contact {
+    background-color: #f48c06;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 5px;
+}
 
 .btn-ref:hover {
     background-color: #282a74;
