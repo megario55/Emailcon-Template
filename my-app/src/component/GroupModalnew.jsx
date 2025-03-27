@@ -156,7 +156,7 @@ const GroupModalnew = ({ onClose }) => {
       className="modal-input modal-group-name-input"
     />
     <button
-      className="modal-btn-cancel btn-create-group"
+      className="modal-btn btn-create-group"
       onClick={handleGroupCreate}
     >
       Create
