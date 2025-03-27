@@ -44,6 +44,7 @@ const Mainpage = () => {
     aliasName: "",
     attachments: [],
   });
+  const [selectedContent, setSelectedContent] = useState(""); // Store selected content
   const [selectedIndex, setSelectedIndex] = useState(null); // Track selected content index
   const [modalIndex, setModalIndex] = useState(null);
   const dragIndex = useRef(null);
@@ -3518,31 +3519,34 @@ const sendscheduleEmail = async () => {
                       style={item.style}
                     >
                       {item.type === "para" && (
-                        <>
-                          <p
-                            className="border"
-                            contentEditable
-                            suppressContentEditableWarning
-                            onClick={() => {
-                              setSelectedIndex(index);
-                              setIsModalOpen(true); // Open the modal
-                            }}
-                            style={item.style}
-                            dangerouslySetInnerHTML={{ __html: item.content }} // Render HTML content here
-                          />
-                          <ParaEditor
-                            isOpen={isModalOpen}
-                            content={item.content} // Pass the content to the modal
-                            style={item.style}
-                            onSave={(newContent) => {
-                              updateContent(index, { content: newContent }); // Save the new content
-                              setIsModalOpen(false); // Close the modal after saving
-                            }}
-                            onClose={() => setIsModalOpen(false)} // Close the modal without saving
-                          />
-                        </>
-                      )}
-                      
+  <>
+    <p
+      className="border"
+      contentEditable
+      suppressContentEditableWarning
+      onClick={() => {
+        setSelectedIndex(index);
+        setSelectedContent(item.content); // Store the correct content
+        setIsModalOpen(true); // Open the modal
+      }}
+      style={item.style}
+      dangerouslySetInnerHTML={{ __html: item.content }}
+    />
+    {isModalOpen && selectedIndex === index && (
+      <ParaEditor
+        isOpen={isModalOpen}
+        content={selectedContent} // Pass the correct content
+        style={item.style}
+        onSave={(newContent) => {
+          updateContent(index, { content: newContent }); // Save the new content
+          setIsModalOpen(false);
+        }}
+        onClose={() => setIsModalOpen(false)}
+      />
+    )}
+  </>
+)}
+
 
 {item.type === "multipleimage" ? (
                         <div className="Layout-img">
