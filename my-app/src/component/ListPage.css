@@ -113,6 +113,9 @@
     border-radius: 4px;
     margin: 5px;
 }
+.btn,.btn-contact {
+    width: 200px;
+}
 .btn-contact {
     background-color: #f48c06;
     color: white;
@@ -199,10 +202,6 @@ select {
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 20px;
-}
-
-.btn {
-    width: 200px;
 }
 
 .edit-form form label {
