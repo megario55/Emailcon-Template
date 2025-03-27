@@ -149,10 +149,8 @@ const handleFileUpload = (event) => {
                             <a href="/file/demoexcelfile.xlsx" download>
                               <button className="modal-btn btn-download-sample">
                                 Download Sample xlsx File
-                              </button>
-                              
+                              </button> 
                             </a>
-                            
                           </div>
             
              {/* Modal */}
