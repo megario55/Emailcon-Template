@@ -204,6 +204,12 @@ const handleFileUpload = (event) => {
               </div>
             )}
             <button className="modal-btn btn-save-uploaded-data" onClick={handleSaveUploadedData}>Save Upload</button>
+            <button
+              onClick={onClose}
+              className="modal-create-button-cancel-add"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       </div>
